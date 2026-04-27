@@ -1,0 +1,36 @@
+spring:
+  application:
+    name: verotin
+  datasource:
+    url: jdbc:postgresql://localhost:5432/verotin
+    username: verotin
+    password: verotin
+    driver-class-name: org.postgresql.Driver
+  flyway:
+    enabled: true
+    locations: classpath:db/migration
+  jackson:
+    property-naming-strategy: SNAKE_CASE
+    default-property-inclusion: NON_NULL
+ollama:
+  base-url: http://localhost:11434
+  embed-model: mxbai-embed-large
+  chat-model: llama3
+  # embedding dimensions must match the vector column size in migrations
+  embedding-dimensions: 1024
+logging:
+  level:
+    fi.verotin: DEBUG
+    org.springframework.web.reactive: INFO
+server:
+  port: 8080
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info
+  endpoint:
+    health:
+      show-details: when-authorized
+

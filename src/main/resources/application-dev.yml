@@ -1,0 +1,4 @@
+# Dev profile: fixture ingest runs on startup
+verotin:
+  fixtures:
+    ingest-on-startup: true

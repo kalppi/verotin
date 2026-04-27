@@ -1,0 +1,20 @@
+version: "3.9"
+services:
+  postgres:
+    image: pgvector/pgvector:pg16
+    container_name: verotin-postgres
+    environment:
+      POSTGRES_DB: verotin
+      POSTGRES_USER: verotin
+      POSTGRES_PASSWORD: verotin
+    ports:
+      - "5432:5432"
+    volumes:
+      - verotin_pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U verotin -d verotin"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+volumes:
+  verotin_pgdata:

@@ -1,0 +1,24 @@
+From: mycompany@example.com
+To: me@example.com
+Subject: Invoice #2024-001 - Office supplies
+Date: Thu, 15 Feb 2024 14:30:00 +0200
+Content-Type: text/plain; charset=UTF-8
+Dear Customer,
+This is invoice #2024-001 for office supplies purchased.
+Vendor: TechOffice Oy
+Invoice Number: 2024-001
+Invoice Date: 2024-02-15
+Payment Date: 2024-03-15
+Items:
+- Ergonomic keyboard: €89.99 (qty: 1)
+- Desk lamp LED: €34.50 (qty: 2)
+- Monitor stand: €45.00 (qty: 1)
+Subtotal: €204.48
+VAT (24%): €49.07
+Total Amount: €253.55
+Currency: EUR
+This invoice is for work-related office equipment and supplies.
+The items are used for home office setup and may qualify for 
+work-from-home deductions if you are self-employed or running a business.
+Best regards,
+TechOffice Oy

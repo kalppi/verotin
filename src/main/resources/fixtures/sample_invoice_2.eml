@@ -1,0 +1,33 @@
+From: billing@trainingcenter.fi
+To: me@example.com
+Subject: Receipt - Professional development course
+Date: Fri, 20 Feb 2024 10:15:00 +0200
+Content-Type: text/plain; charset=UTF-8
+Professional Development Course Receipt
+Receipt Number: RC-2024-0847
+Course: Advanced Kotlin Programming
+Provider: TrainingCenter Oy
+Course Date: 2024-02-20
+Instructor: John Smith
+Attendee: Your Name
+Email: me@example.com
+Course Details:
+- Duration: 2 days (8 hours)
+- Course code: KT-201
+- Category: Professional Development
+- Venue: Online
+Invoice Information:
+Amount: €799.00
+VAT (24%): €191.76
+Total: €990.76
+Currency: EUR
+Payment Date: 2024-03-05
+Course Description:
+This course covers advanced Kotlin programming techniques for professional developers.
+Topics include coroutines, DSL design, functional programming, and testing strategies.
+Deductibility Note:
+Professional development and training expenses for self-employed individuals
+may be deductible as business expenses. The course material and certification
+are for professional purposes and may qualify for tax deductions depending on
+your business type and tax domicile.
+Thank you for choosing TrainingCenter Oy
