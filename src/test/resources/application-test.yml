@@ -1,7 +1,6 @@
 spring:
   datasource:
-    url: jdbc:tc:postgresql:///verotin_test?TC_INITSCRIPT=file:src/test/resources/init.sql
-    driver-class-name: org.testcontainers.jdbc.ContainerDatabaseDriver
+    driver-class-name: org.postgresql.Driver
   flyway:
     enabled: true
     locations: classpath:db/migration
