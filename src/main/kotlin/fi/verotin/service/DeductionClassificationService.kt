@@ -74,12 +74,12 @@ class DeductionClassificationService(
         """.trimIndent()
         val userPrompt = """
             Classify this invoice extraction:
-            Vendor: ${'$'}{extraction.vendorName ?: "Unknown"}
-            Amount: ${'$'}{extraction.totalAmount ?: "Unknown"} ${'$'}{extraction.currency ?: "EUR"}
-            Date: ${'$'}{extraction.invoiceDate ?: "Unknown"}
-            Description (from document): ${'$'}{extraction.lineItems.joinToString("; ") { it.description }}
+            Vendor: ${extraction.vendorName ?: "Unknown"}
+            Amount: ${extraction.totalAmount ?: "Unknown"} ${extraction.currency ?: "EUR"}
+            Date: ${extraction.invoiceDate ?: "Unknown"}
+            Description (from document): ${extraction.lineItems.joinToString("; ") { it.description }}
             Relevant tax rules:
-            ${'$'}{taxRuleSnippets.joinToString("\n\n") { it }}
+            ${taxRuleSnippets.joinToString("\n\n") { it }}
             Provide 1-3 possible deduction categories if applicable.
         """.trimIndent()
         val rawResponse = try {
@@ -92,7 +92,7 @@ class DeductionClassificationService(
                 jsonFormat = true,
             )
         } catch (ex: OllamaException) {
-            log.error("Deduction classification failed for invoice ${'$'}{extraction.id}: ${'$'}{ex.message}")
+            log.error("Deduction classification failed for invoice ${extraction.id}: ${ex.message}")
             // Return no candidates on error; don't crash the ingest pipeline.
             return emptyList()
         }
@@ -116,7 +116,7 @@ class DeductionClassificationService(
                 )
             } ?: emptyList()
             candidates.forEach { candidateRepo.insert(it) }
-            log.info("Classified invoice ${'$'}{extraction.id} into ${'$'}{candidates.size} deduction candidates")
+            log.info("Classified invoice ${extraction.id} into ${candidates.size} deduction candidates")
             candidates
         } catch (ex: Exception) {
             log.warn("Failed to parse deduction classification JSON", ex)

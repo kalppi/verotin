@@ -36,7 +36,7 @@ class RetrieverService(
                 .take(limit)
                 .map { it.first.content }
         } catch (ex: OllamaException) {
-            log.warn("Document retrieval failed due to embedding error: ${'$'}{ex.message}")
+            log.warn("Document retrieval failed due to embedding error: ${ex.message}")
             emptyList()
         }
     }
@@ -57,7 +57,7 @@ class RetrieverService(
                 .take(limit)
                 .map { it.first.content }
         } catch (ex: OllamaException) {
-            log.warn("Tax rule retrieval failed due to embedding error: ${'$'}{ex.message}")
+            log.warn("Tax rule retrieval failed due to embedding error: ${ex.message}")
             emptyList()
         }
     }

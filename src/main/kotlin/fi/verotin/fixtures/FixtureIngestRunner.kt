@@ -52,7 +52,7 @@ class FixtureIngestRunner(
         }
         val chunks = chunkingService.chunkTaxRules("TVL 2024", content)
         embeddingService.embedAndStoreTaxRuleChunks(chunks)
-        log.info("Ingested ${'$'}{chunks.size} tax rule chunks")
+        log.info("Ingested ${chunks.size} tax rule chunks")
     }
     private fun ingestFixtures() {
         // Try to load .eml fixtures
@@ -66,10 +66,10 @@ class FixtureIngestRunner(
                 val bytes = resource.inputStream.bufferedReader().use { it.readText() }.toByteArray()
                 val result = ingestService.ingest(bytes, filename, "email")
                 if (result != null) {
-                    log.info("Ingested ${'$'}{filename}: ${'$'}{result.chunkCount} chunks")
+                    log.info("Ingested ${filename}: ${result.chunkCount} chunks")
                     // Classify for possible deductions
                     val candidates = classificationService.classify(result.extraction)
-                    log.info("Classified into ${'$'}{candidates.size} deduction candidates")
+                    log.info("Classified into ${candidates.size} deduction candidates")
                 } else {
                     log.info("Skipped duplicate: $filename")
                 }

@@ -63,7 +63,7 @@ class ExtractionService(
         """.trimIndent()
         val userPrompt = """
             Extract invoice fields from this document:
-            ${'$'}{doc.rawContent.take(4000)}
+            ${doc.rawContent.take(4000)}
         """.trimIndent()
         val rawResponse = try {
             ollamaClient.chat(
@@ -75,7 +75,7 @@ class ExtractionService(
                 jsonFormat = true,
             )
         } catch (ex: OllamaException) {
-            log.error("Extraction failed for ${'$'}{doc.filename}: ${'$'}{ex.message}")
+            log.error("Extraction failed for ${doc.filename}: ${ex.message}")
             return InvoiceExtraction(
                 id = java.util.UUID.randomUUID(),
                 sourceDocumentId = doc.id,
@@ -89,7 +89,7 @@ class ExtractionService(
                 laborAmount = null,
                 materialAmount = null,
                 lineItems = emptyList(),
-                rawLlmResponse = "ERROR: ${'$'}{ex.message}",
+                rawLlmResponse = "ERROR: ${ex.message}",
                 extractedAt = Instant.now(),
             ).also {
                 extractionRepo.insert(it)
@@ -140,7 +140,7 @@ class ExtractionService(
             )
         }
         extractionRepo.insert(extraction)
-        log.debug("Extracted invoice from ${'$'}{doc.filename}: vendor=${'$'}{extraction.vendorName}, amount=${'$'}{extraction.totalAmount}")
+        log.debug("Extracted invoice from ${doc.filename}: vendor=${extraction.vendorName}, amount=${extraction.totalAmount}")
         return extraction
     }
     private fun parseDate(dateStr: String?): LocalDate? {
