@@ -73,7 +73,8 @@ class ExtractionService(
             - If a product title wraps across multiple physical lines, keep it in a single row description.
             - Do not create a separate row for a continuation fragment of the previous product title.
             - If no table exists, return lineItemsTable with empty columns/rows.
-            - important: each rows array size should always match column count
+            - CRITICAL: every row array MUST have exactly the same number of elements as there are columns. Use null for any missing cell value — never omit a cell.
+            - CRITICAL: do not shift cell values — every cell must be at the correct column index.
             - important: each column type is used only once
         """.trimIndent()
         val userPrompt = """
@@ -182,14 +183,39 @@ class ExtractionService(
             else -> resolveTotalColumn(descriptors)
         }
 
+        val expectedCellCount = descriptors.size
         return rowsRaw.mapNotNull { row ->
             val cells = row ?: return@mapNotNull null
+
+            if (cells.size != expectedCellCount) {
+                log.warn(
+                    "Skipping row with cell count mismatch: expected $expectedCellCount, got ${cells.size}. Row: $cells"
+                )
+                return@mapNotNull null
+            }
+
             val description = resolveDescription(cells, descriptors, descIdx)
             if (description.isBlank()) return@mapNotNull null
 
             val unitPrice = resolveUnitPrice(cells, descriptors, unitIdx)
-            val total = resolveTotal(cells, descriptors, totalIdx)
             val quantity = resolveQuantity(cells, qtyIdx)
+            val extractedTotal = resolveTotal(cells, descriptors, totalIdx)
+            val computed = computeTotal(quantity, unitPrice)
+
+            // Validate: if computed and extracted diverge by more than 10%, the LLM likely
+            // copied the total from a different row. In that case use computed instead.
+            // Small divergence (e.g. ≤10%) is tolerated — can be gross vs net VAT difference.
+            val total = when {
+                computed == null -> extractedTotal
+                extractedTotal == null -> computed
+                totalsDiverge(computed, extractedTotal) -> {
+                    log.warn("Total mismatch for '$description': computed=$computed extracted=$extractedTotal — using computed")
+                    computed
+                }
+                else -> extractedTotal
+            }
+
+            log.debug("Mapped line item: description='$description' qty=$quantity unitPrice=$unitPrice total=$total")
 
             LineItem(
                 description = description,
@@ -198,6 +224,22 @@ class ExtractionService(
                 total = total,
             )
         }
+    }
+
+    private fun computeTotal(quantity: Double?, unitPrice: BigDecimal?): BigDecimal? {
+        if (quantity == null || unitPrice == null) return null
+        return unitPrice.multiply(BigDecimal(quantity)).setScale(2, java.math.RoundingMode.HALF_UP)
+    }
+
+    /** Returns true when the two totals differ by more than 10% of the smaller value,
+     *  indicating the extracted total likely came from a different row rather than
+     *  a mere net/gross VAT difference. */
+    private fun totalsDiverge(computed: BigDecimal, extracted: BigDecimal): Boolean {
+        if (computed <= BigDecimal.ZERO || extracted <= BigDecimal.ZERO) return false
+        val smaller = computed.min(extracted)
+        val diff = computed.subtract(extracted).abs()
+        val ratio = diff.divide(smaller, 4, java.math.RoundingMode.HALF_UP)
+        return ratio > BigDecimal("0.10")
     }
 
     private fun resolveQuantity(row: List<Any?>, qtyIdx: Int?): Double? {
