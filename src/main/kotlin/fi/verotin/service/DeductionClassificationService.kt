@@ -140,6 +140,10 @@ class DeductionClassificationService(
             
             ANTI-LABOUR COMPOUNDS (contain "asennus" but are materials):
             asennuskaapeli, asennuskanava, asennustarvike, asennusrasia, asennusputki, asennussarja
+
+            ANTI-LABOUR VEHICLE/LOGISTICS COMPOUNDS (NOT labour):
+            huoltoauto, huoltoajoneuvo, huoltokäyntiauto, huoltoautoilu,
+            asennusauto, työauto, pakettiauto, kuorma-auto
             
             PRODUCT CODES AND SKUs:
             Lines that look like model numbers, part codes, serial numbers, or SKUs
@@ -147,24 +151,25 @@ class DeductionClassificationService(
             
             NEGATIVE SIGNALS (never deductible):
             laskutuslisä, toimitus, kuljetus, rahti, postitus, lähetys, matka, kuljetus,
-            säilytys, vakuutus, provisio, komissio
+            säilytys, vakuutus, provisio, komissio, auto, ajoneuvo
             
             ======================================================================
             CONFLICT RESOLUTION (PRIORITY ORDER)
             ======================================================================
             
             1. NEGATIVE SIGNAL detected → { "candidate": null }
-            2. Product code or SKU detected → { "candidate": null }
-            3. Strong labour signal on this line → labour candidate (EVEN IF materials/components are mentioned)
-            4. Strong material signal on this line (with NO labour signal) → { "candidate": null }
-            5. If unsure → { "candidate": null }
+            2. Vehicle/logistics compound detected (e.g. "huoltoauto") → { "candidate": null }
+            3. Product code or SKU detected → { "candidate": null }
+            4. Strong labour signal on this line → labour candidate (EVEN IF materials/components are mentioned)
+            5. Strong material signal on this line (with NO labour signal) → { "candidate": null }
+            6. If unsure → { "candidate": null }
             
             *** IMPORTANT: If a line contains a labour signal keyword + material keywords ***
             
             Pattern: "[Labour signal], sis. [material]" or "[Labour], [material]"
             Example: "Sähkötyö, sis. turvakytkin" → LABOUR (the switch is part of the electrical work)
             Example: "Asennus, levy + kaapeli" → LABOUR (materials are part of the installation service)
-            
+              
             Interpretation: The labour part is the primary service. Materials/components listed
             are just describing what's included in that service—NOT a reason to reject the candidate.
             
@@ -186,6 +191,15 @@ class DeductionClassificationService(
             ======================================================================
             OUTPUT FORMAT
             ======================================================================
+            
+            CATEGORY GROUNDING RULE:
+            - Category must match the evidence on THIS LINE.
+            - tyohuonevahennys is not invoice-line based in this pipeline: never return it from
+              single-line invoice classification.
+            - Do NOT map explicit labour service lines (e.g. tuntityo, asennustyo, huoltotyo,
+              korjaustyo, sahkotyo) to home-office category (tyohuonevahennys).
+            - tyohuonevahennys requires explicit home-office evidence (workspace/home office cost),
+              not generic service labour.
             
             If this line is a possible deduction (HIGH CONFIDENCE):
             {
