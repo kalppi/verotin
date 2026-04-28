@@ -172,16 +172,16 @@ class IngestPipelineIntegrationTest {
     @Test
     fun `pdf fixtures produce deduction candidates`() {
         val fixtures = mapOf(
-//            "Kuitti 128255003 - Verkkokauppa.com.pdf" to listOf(
-//                RequiredLineItem("ilmalampopumpun perusasennus", 1.0, listOf("705.0", "561.75")),
-//                RequiredLineItem("sisayksikko", 1.0, "596.94"),
-//                RequiredLineItem("ulkoyksikko", 1.0, "729.77"),
-//            ),
-//            "Lasku_2490.pdf" to listOf(
-//                RequiredLineItem("sahkotyo", 1.0, listOf("98.99", "78.88")),
-//                RequiredLineItem("maateline", 1.0, "79.0"),
-//                RequiredLineItem("kylmalinjan lisametri", 1.0, "60.0"),
-//            ),
+            "Kuitti 128255003 - Verkkokauppa.com.pdf" to listOf(
+                RequiredLineItem("ilmalampopumpun perusasennus", 1.0, listOf("705.0", "561.75")),
+                RequiredLineItem("sisayksikko", 1.0, "596.94"),
+                RequiredLineItem("ulkoyksikko", 1.0, "729.77"),
+            ),
+            "Lasku_2490.pdf" to listOf(
+                RequiredLineItem("sahkotyo", 1.0, listOf("98.99", "78.88")),
+                RequiredLineItem("maateline", 1.0, "79.0"),
+                RequiredLineItem("kylmalinjan lisametri", 1.0, "60.0"),
+            ),
             "Invoice_102509.pdf" to listOf(
                 RequiredLineItem("YHDISTELMÄTERMOSTAATTI ONNLINE (ECOHELPPO16-RD 16A IP21)", 4.0, "417.08"),
                 RequiredLineItem("KESKIOLEVY JUSSI (PUHELIN, SUOMI 3-NAP)", 1.0, "1.87"),
