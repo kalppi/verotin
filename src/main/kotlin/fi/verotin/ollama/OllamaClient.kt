@@ -37,6 +37,8 @@ class OllamaClient(private val webClient: WebClient) {
             }
             response.embeddings[0].map { it.toFloat() }.toFloatArray()
         } catch (ex: WebClientResponseException) {
+            val a = ex.message
+            val b = ex.responseBodyAsString
             log.error("Ollama embed HTTP ${ex.statusCode}: ${ex.responseBodyAsString}")
             throw OllamaException("Ollama embed failed: ${ex.statusCode}", ex)
         } catch (ex: OllamaException) {

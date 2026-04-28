@@ -9,8 +9,6 @@ import org.springframework.boot.ApplicationArguments
 import org.springframework.boot.ApplicationRunner
 import org.springframework.core.io.ResourceLoader
 import org.springframework.stereotype.Component
-import java.nio.file.Files
-import java.nio.file.Paths
 /**
  * Loads fixture files from resources on application startup (if configured).
  * Processes email samples and tax rules through the full ingest and classification pipeline.
@@ -55,16 +53,17 @@ class FixtureIngestRunner(
         log.info("Ingested ${chunks.size} tax rule chunks")
     }
     private fun ingestFixtures() {
-        // Try to load .eml fixtures
-        listOf("sample_invoice_1.eml", "sample_invoice_2.eml").forEach { filename ->
+        // Ingest fixtures using byte-accurate reads so binary files (e.g. PDFs) are not corrupted.
+        listOf(/*"sample_invoice_1.eml", "sample_invoice_2.eml", */"Kuitti 128255003 - Verkkokauppa.com.pdf").forEach { filename ->
             try {
                 val resource = resourceLoader.getResource("classpath:fixtures/$filename")
                 if (!resource.exists()) {
                     log.debug("Fixture not found: $filename")
                     return@forEach
                 }
-                val bytes = resource.inputStream.bufferedReader().use { it.readText() }.toByteArray()
-                val result = ingestService.ingest(bytes, filename, "email")
+                val bytes = resource.inputStream.use { it.readBytes() }
+                val contentType = detectContentType(filename)
+                val result = ingestService.ingest(bytes, filename, contentType)
                 if (result != null) {
                     log.info("Ingested ${filename}: ${result.chunkCount} chunks")
                     // Classify for possible deductions
@@ -76,6 +75,14 @@ class FixtureIngestRunner(
             } catch (ex: Exception) {
                 log.error("Error ingesting $filename", ex)
             }
+        }
+    }
+
+    private fun detectContentType(filename: String): String {
+        return when {
+            filename.endsWith(".pdf", ignoreCase = true) -> "pdf"
+            filename.endsWith(".eml", ignoreCase = true) -> "email"
+            else -> "txt"
         }
     }
 }

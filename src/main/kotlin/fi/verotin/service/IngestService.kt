@@ -5,7 +5,6 @@ import org.apache.pdfbox.Loader
 import org.apache.pdfbox.text.PDFTextStripper
 import org.slf4j.LoggerFactory
 import org.springframework.stereotype.Service
-import java.io.ByteArrayInputStream
 import java.security.MessageDigest
 import java.time.Instant
 import java.util.UUID
