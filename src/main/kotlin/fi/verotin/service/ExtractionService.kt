@@ -114,12 +114,6 @@ class ExtractionService(
             val parsed = objectMapper.readValue(rawResponse, ExtractionDto::class.java)
             val tableLineItems = mapLineItemsFromTable(parsed.lineItemsTable)
 
-//            val normalizedLineItems = normalizeLineTotalsWithVatContext(
-//                lineItems = tableLineItems,
-//                invoiceTotal = parsed.totalAmount?.let { BigDecimal(it.toString()) },
-//                invoiceVat = parsed.vatAmount?.let { BigDecimal(it.toString()) },
-//            )
-
             InvoiceExtraction(
                 id = java.util.UUID.randomUUID(),
                 sourceDocumentId = doc.id,
@@ -169,31 +163,6 @@ class ExtractionService(
         }
     }
 
-    private fun normalizeLineTotalsWithVatContext(
-        lineItems: List<LineItem>,
-        invoiceTotal: BigDecimal?,
-        invoiceVat: BigDecimal?,
-    ): List<LineItem> {
-        val vatMultiplier = inferVatMultiplier(invoiceTotal, invoiceVat) ?: return lineItems
-
-        return lineItems.map { item ->
-            // Only normalize NET_TOTAL to GROSS_TOTAL when we have VAT context
-            if (item.totalType != LineColumnType.NET_TOTAL.name) return@map item
-            if (item.total == null) return@map item
-
-            val vatInclusive = item.total.multiply(vatMultiplier).setScale(2, java.math.RoundingMode.HALF_UP)
-            item.copy(total = vatInclusive, totalType = LineColumnType.GROSS_TOTAL.name)
-        }
-    }
-
-    private fun inferVatMultiplier(invoiceTotal: BigDecimal?, invoiceVat: BigDecimal?): BigDecimal? {
-        if (invoiceTotal == null || invoiceVat == null) return null
-        val net = invoiceTotal.subtract(invoiceVat)
-        if (net <= BigDecimal.ZERO) return null
-        val multiplier = invoiceTotal.divide(net, 6, java.math.RoundingMode.HALF_UP)
-        return if (multiplier > BigDecimal("1.00") && multiplier < BigDecimal("1.30")) multiplier else null
-    }
-
     private fun mapLineItemsFromTable(table: LineItemsTableDto?): List<LineItem> {
         val columnsRaw = table?.columns ?: return emptyList()
         val rowsRaw = table.rows ?: return emptyList()
@@ -205,13 +174,12 @@ class ExtractionService(
         val qtyIdx = indexByType[LineColumnType.QUANTITY] ?: resolveQuantityColumn(descriptors)
         val unitIdx = indexByType[LineColumnType.UNIT_PRICE] ?: resolveUnitPriceColumn(descriptors)
 
-        // Track which total type we're using
-        val (totalIdx, totalType) = when {
+        val totalIdx = when {
             LineColumnType.GROSS_TOTAL in indexByType ->
-                Pair(indexByType[LineColumnType.GROSS_TOTAL], LineColumnType.GROSS_TOTAL.name)
+                indexByType[LineColumnType.GROSS_TOTAL]
             LineColumnType.NET_TOTAL in indexByType ->
-                Pair(indexByType[LineColumnType.NET_TOTAL], LineColumnType.NET_TOTAL.name)
-            else -> Pair(resolveTotalColumn(descriptors), null)
+                indexByType[LineColumnType.NET_TOTAL]
+            else -> resolveTotalColumn(descriptors)
         }
 
         return rowsRaw.mapNotNull { row ->
@@ -221,65 +189,43 @@ class ExtractionService(
 
             val unitPrice = resolveUnitPrice(cells, descriptors, unitIdx)
             val total = resolveTotal(cells, descriptors, totalIdx)
-            val quantity = resolveQuantity(cells, descriptors, qtyIdx, unitPrice)
+            val quantity = resolveQuantity(cells, qtyIdx)
 
             LineItem(
                 description = description,
                 quantity = quantity,
                 unitPrice = unitPrice,
                 total = total,
-                totalType = totalType,
             )
         }
     }
 
-    private fun resolveQuantity(
-        row: List<Any?>,
-        columns: List<ColumnDescriptor>,
-        qtyIdx: Int?,
-        unitPrice: BigDecimal?,
-    ): Double? {
-        val direct = readCell(row, qtyIdx)?.let { parseDecimal(it) }?.toDouble()
-        if (direct != null) return direct
+    private fun resolveQuantity(row: List<Any?>, qtyIdx: Int?): Double? {
+        return readCell(row, qtyIdx)
+            ?.let { parseQuantity(it) }
+    }
 
-        val quantityByHeader = columns.indices
-            .asSequence()
-            .filter { idx ->
-                columns[idx].type == LineColumnType.QUANTITY ||
-                    columns[idx].text.contains("maara") ||
-                    columns[idx].text.contains("qty") ||
-                    columns[idx].text.contains("kpl")
+    private fun parseQuantity(raw: String): Double? {
+        val compact = raw.trim()
+        if (compact.isEmpty()) return null
+
+        // Keep numeric characters and decimal separators; drop unit labels like "kpl" or "h".
+        val cleaned = compact.filter { it.isDigit() || it == ',' || it == '.' || it == '-' }
+        if (cleaned.isEmpty()) return null
+
+        val normalized = when {
+            cleaned.contains(',') && cleaned.contains('.') -> {
+                if (cleaned.lastIndexOf(',') > cleaned.lastIndexOf('.')) {
+                    cleaned.replace(".", "").replace(',', '.')
+                } else {
+                    cleaned.replace(",", "")
+                }
             }
-            .mapNotNull { idx -> readCell(row, idx)?.let { parseDecimal(it) }?.toDouble() }
-            .firstOrNull()
-        if (quantityByHeader != null) return quantityByHeader
-
-        if (unitPrice == null || unitPrice <= BigDecimal.ZERO) return null
-
-        val candidateTotals = columns.indices
-            .asSequence()
-            .filter { idx ->
-                columns[idx].type == LineColumnType.GROSS_TOTAL ||
-                    columns[idx].type == LineColumnType.NET_TOTAL ||
-                    columns[idx].text.contains("verollinen") ||
-                    columns[idx].text.contains("veroton") ||
-                    columns[idx].text.contains("summa") ||
-                    columns[idx].text.contains("total")
-            }
-            .mapNotNull { idx -> readCell(row, idx)?.let { parseDecimal(it) } }
-            .toList()
-
-        candidateTotals.forEach { total ->
-            if (total <= BigDecimal.ZERO) return@forEach
-            val raw = total.divide(unitPrice, 4, java.math.RoundingMode.HALF_UP)
-            val rounded = raw.setScale(0, java.math.RoundingMode.HALF_UP)
-            if (rounded <= BigDecimal.ZERO || rounded > BigDecimal("10000")) return@forEach
-            val delta = raw.subtract(rounded).abs()
-            if (delta <= BigDecimal("0.05")) {
-                return rounded.toDouble()
-            }
+            cleaned.contains(',') -> cleaned.replace(',', '.')
+            else -> cleaned
         }
-        return null
+
+        return normalized.toDoubleOrNull()
     }
 
     private fun resolveUnitPrice(row: List<Any?>, columns: List<ColumnDescriptor>, unitIdx: Int?): BigDecimal? {

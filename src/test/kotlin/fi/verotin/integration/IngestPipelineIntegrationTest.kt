@@ -222,6 +222,9 @@ class IngestPipelineIntegrationTest {
                 val matched = unmatchedActual.firstOrNull {
                     normalize(it.description).contains(normalize(expected.descriptionContains))
                 }
+                if (matched !== null && matched.quantity == null) {
+                    val a = 1;
+                }
                 assertNotNull(matched, "Missing expected line '${expected.descriptionContains}' for fixture: $filename")
                 assertEquals(expected.quantity, matched.quantity, "Quantity mismatch for '${expected.descriptionContains}' in fixture: $filename")
                 assertAcceptedTotal(expected.acceptedTotals, matched, "Total mismatch for '${expected.descriptionContains}' in fixture: $filename")
