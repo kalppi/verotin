@@ -31,319 +31,235 @@ class DeductionClassificationService(
     private val candidateRepo: DeductionCandidateRepository,
 ) {
     companion object {
-        private const val MAX_JSON_PARSE_ATTEMPTS = 2
+        private const val MAX_PARSE_ATTEMPTS = 2
     }
 
     private val log = LoggerFactory.getLogger(DeductionClassificationService::class.java)
     private val objectMapper = jacksonObjectMapper()
+
     fun classify(extraction: InvoiceExtraction, taxYear: Int = 2025): List<DeductionCandidate> {
-        // Retrieve relevant tax rules based on extracted vendor/category info.
-        val taxRuleSnippets = retrievalService.retrieveTaxRules(
-            query = buildQuery(extraction),
-            limit = 5,
+        if (extraction.lineItems.isEmpty()) {
+            log.debug("No line items to classify for invoice ${extraction.id}")
+            return emptyList()
+        }
+
+        // Retrieve tax rules once — shared across all line classifications.
+        val taxRules = retrievalService.retrieveTaxRules(query = buildQuery(extraction), limit = 5)
+        val invoiceContext = buildInvoiceContext(extraction)
+
+        val candidates = extraction.lineItems.flatMapIndexed { idx, line ->
+            val result = classifyLine(
+                lineIndex = idx,
+                lineDescription = line.description,
+                lineTotal = line.total,
+                invoiceContext = invoiceContext,
+                taxRules = taxRules,
+                extractionId = extraction.id,
+                taxYear = taxYear,
+            )
+            result
+        }
+
+        candidates.forEach { candidateRepo.insert(it) }
+        log.info(
+            "Classified invoice ${extraction.id}: ${extraction.lineItems.size} lines → ${candidates.size} candidates"
         )
+        return candidates
+    }
+
+    /**
+     * Classify a single invoice line independently.
+     * Each call asks the LLM to focus on ONE line only, with invoice context for reference.
+     */
+    private fun classifyLine(
+        lineIndex: Int,
+        lineDescription: String,
+        lineTotal: BigDecimal?,
+        invoiceContext: String,
+        taxRules: List<String>,
+        extractionId: UUID,
+        taxYear: Int,
+    ): List<DeductionCandidate> {
+        if (lineDescription.isBlank()) return emptyList()
+
         val systemPrompt = """
             You are a Finnish tax deduction classifier.
-            
-            Your role is to identify POSSIBLE tax-deduction candidates from invoices,
-            NOT to provide final tax advice or guarantees.
+            You are given ONE invoice line at a time. Decide if this single line is a possible tax deduction.
             
             ======================================================================
-            NON-NEGOTIABLE RULES (HIGHEST PRIORITY)
+            CONSERVATIVE CLASSIFICATION PRINCIPLE
             ======================================================================
             
-            These rules override ALL other instructions.
+            DO NOT speculate or infer meaning from unclear text.
             
-            1. LABOUR REQUIREMENT
-            A line MUST NOT be classified as kotitalousvähennys unless the SAME LINE
-            contains a labour signal.
+            If the line:
+            - is a product code or SKU (e.g. "4OS/IP21/85mm VAL", model numbers, part numbers)
+            - contains only abbreviations or codes you cannot decode with certainty
+            - could mean multiple things but none are clearly a labour signal
             
-            2. LABOUR OVERRIDE (CRITICAL)
-            If a line contains a strong labour signal, it MUST be treated as labour,
-            even if:
-            - the invoice contains many material/product lines
-            - nearby lines contain materials
+            → Return { "candidate": null }
             
-            Strong labour signals:
-            - tuntityö
-            - työ
-            - työn osuus
-            - asennustyö
-            - sähkötyö
-            - putkityö
-            - huoltotyö
-            - korjaustyö
-            - asennus
-            - perusasennus
-            - huolto
-            - korjaus
-            - remontti
-            - palvelu
-            
-            3. PRODUCT / MATERIAL EXCLUSION
-            The following indicate product/material lines and are NEVER labour:
-            - sisäyksikkö
-            - ulkoyksikkö
-            - laite
-            - pumppu
-            - kone
-            - malli
-            - tuotenumero
-            - varaosa
-            - tarvike
-            
-            4. NO CROSS-LINE INFERENCE
-            Do NOT infer labour from nearby or sibling lines.
-            
-            5. BUNDLE RULE
-            If a bundle/header line and detailed lines exist:
-            - Use ONLY the detailed priced lines
-            - NEVER generate duplicate candidates
-            
-            6. ONE EXPENSE → ONE CANDIDATE
-            If multiple lines describe the same expense:
-            - Generate ONLY ONE candidate
-            - Use the most specific priced line
-            
-            If any rule conflicts → follow these rules.
+            ONLY classify as deductible if you are CONFIDENT the line describes a labour service
+            or clearly deductible expense based on EXPLICIT FINNISH TAX RULES.
             
             ======================================================================
-            ANTI-LABOUR PATTERNS (CRITICAL)
+            LABOUR SIGNALS — line MUST contain ONE of these EXACT WORDS/PHRASES to be kotitalousvähennys:
             ======================================================================
             
-            Words containing "asennus" are NOT automatically labour.
+            Strong labour signals (REQUIRED):
+            tuntityö, työ, työn osuus, asennustyö, sähkötyö, putkityö, huoltotyö,
+            korjaustyö, asennus, perusasennus, huolto, korjaus, remontti, palvelu
             
-            The following are ALWAYS materials:
-            - asennuskaapeli
-            - asennuskanava
-            - asennustarvike
-            - asennusrasia
-            - asennusputki
-            - asennussarja
-            
-            Rule:
-            If "asennus" is part of a compound word referring to a physical object,
-            it is MATERIAL, not labour.
-            
-            Examples:
-            - "asennuskaapeli" → material
-            - "asennuskanava" → material
+            Special case:
+            "Tuntityö" = hourly labour → ALWAYS labour candidate (if clear from context)
             
             ======================================================================
-            CONFLICT RESOLUTION
+            PRODUCT / MATERIAL / NON-DEDUCTIBLE — NEVER labour:
             ======================================================================
             
-            Priority:
+            EXPLICIT material indicators:
+            sisäyksikkö, ulkoyksikkö, laite, pumppu, kone, malli, tuotenumero,
+            varaosa, tarvike, levy, kaapeli, kanava, kanava, rasia, putki, langan,
+            johto, katkaisin, pistorasia, kytkin, vastus
             
-            1. Strong labour signal on the SAME LINE → ALWAYS labour
-            2. Strong material signal on the SAME LINE → material
-            3. Context → only allowed if (1) exists
+            ANTI-LABOUR COMPOUNDS (contain "asennus" but are materials):
+            asennuskaapeli, asennuskanava, asennustarvike, asennusrasia, asennusputki, asennussarja
             
-            Important:
-            - "Tuntityö" ALWAYS wins over material context
-            - Material-heavy invoice MUST NOT suppress labour lines
+            PRODUCT CODES AND SKUs:
+            Lines that look like model numbers, part codes, serial numbers, or SKUs
+            → NOT deductible. Example: "4OS/IP21/85mm VAL" → SKIP
             
-            ======================================================================
-            STRUCTURAL RULES
-            ======================================================================
-            
-            Treat invoice as hierarchy:
-            
-            - Bundle/header lines:
-              - Often descriptive
-              - May have price = 0
-              - IGNORE if detailed lines exist
-            
-            - Detailed lines:
-              - Actual charges
-              - MUST be used
-            
-            Rules:
-            - Prefer most specific priced line
-            - Ignore zero-value bundle lines
-            - Do NOT duplicate candidates
+            NEGATIVE SIGNALS (never deductible):
+            laskutuslisä, toimitus, kuljetus, rahti, postitus, lähetys, matka, kuljetus,
+            säilytys, vakuutus, provisio, komissio
             
             ======================================================================
-            LINE-LEVEL CLASSIFICATION
+            CONFLICT RESOLUTION (PRIORITY ORDER)
             ======================================================================
             
-            STRICT ISOLATION RULE:
-            Each line must be classified using ONLY its own content.
+            1. NEGATIVE SIGNAL detected → { "candidate": null }
+            2. Product code or SKU detected → { "candidate": null }
+            3. Strong material signal on this line → { "candidate": null }
+            4. Strong labour signal on this line → labour candidate
+            5. If unsure → { "candidate": null }
             
-            Context rules:
-            - MAY be used ONLY if line has labour signal
-            - MUST NOT be used to turn product lines into labour
-            
-            NO GLOBAL BIAS:
-            Do NOT classify based on overall invoice composition.
-            
-            ======================================================================
-            GENERIC LABOUR RULE
-            ======================================================================
-            
-            If a line contains a labour signal but no object (e.g. "Tuntityö"):
-            
-            - It MUST be treated as valid labour
-            - It MUST NOT be skipped
-            
-            Then:
-            - Use invoice context to infer category
-            - NEVER use context to invalidate labour
-            
-            Example:
-            "Tuntityö 483,00 €"
-            → valid labour candidate
+            NEVER infer labour from ambiguous abbreviations or codes.
+            NEVER manufacture deduction categories.
             
             ======================================================================
-            HEAT PUMP RULE (EXPLICIT)
+            HEAT PUMP EXAMPLE
             ======================================================================
             
-            - "ilmalämpöpumpun perusasennus"
-              → kotitalousvähennys candidate (labour)
-            
-            - "ilmalämpöpumppu"
-              → product
-            
-            - "sisäyksikkö"
-              → product
-            
-            - "ulkoyksikkö"
-              → product
+            - "ilmalämpöpumpun perusasennus" → kotitalousvähennys (labour)
+            - "ilmalämpöpumppu" → NOT deductible (product)
+            - "sisäyksikkö" → NOT deductible (product)
+            - "ulkoyksikkö" → NOT deductible (product)
             
             ======================================================================
             OUTPUT FORMAT
             ======================================================================
             
-            Return JSON:
-            
+            If this line is a possible deduction (HIGH CONFIDENCE):
             {
-              "candidates": [
-                {
-                  "category": "string",
-                  "confidence": 0.75,
-                  "deductibleAmount": null or number,
-                  "justification": "string",
-                  "missingInformation": "string or null",
-                  "suggestedNextAction": "string or null",
-                  "evidenceSnippets": ["snippet1", "snippet2"]
-                }
-              ]
+              "candidate": {
+                "category": "string",
+                "confidence": 0.75,
+                "deductibleAmount": null or number,
+                "justification": "string — REQUIRED, explain why this line may be deductible based on EXPLICIT text",
+                "missingInformation": "string or null",
+                "suggestedNextAction": "string or null",
+                "evidenceSnippets": ["exact text from this line"]
+              }
             }
             
-            ======================================================================
-            OUTPUT RULES
-            ======================================================================
+            If this line is NOT deductible or uncertain:
+            { "candidate": null }
             
-            - Include ONLY possible deduction candidates
-            - EXCLUDE product/material lines
-            - EXCLUDE bundle/header lines
-            
-            Evidence rules:
-            - evidenceSnippets MUST be UNIQUE across candidates
-            - Same line MUST NOT justify multiple deductions
-            
-            ======================================================================
-            CLASSIFICATION RULES
-            ======================================================================
-            
-            - Only suggest legitimate Finnish tax categories
-            - Be conservative
-            - Do NOT invent categories
-            - Do NOT claim certainty
-            - Always include missingInformation
-            
-            ======================================================================
-            FINAL PRIORITIES
-            ======================================================================
-            
-            1. Correct structure (no duplicates, no bundle leakage)
-            2. Labour vs product separation (strict)
-            3. Labour lines MUST NOT be lost
-            4. Conservative classification
+            Return ONLY this JSON. No markdown, no explanation outside JSON.
         """.trimIndent()
 
         val userPrompt = """
-            Classify this invoice extraction:
-            Vendor: ${extraction.vendorName ?: "Unknown"}
-            Amount: ${extraction.totalAmount ?: "Unknown"} ${extraction.currency ?: "EUR"}
-            Date: ${extraction.invoiceDate ?: "Unknown"}
-            Description (from document): ${extraction.lineItems.joinToString("; ") { it.description }}
+            Invoice context:
+            $invoiceContext
+            
             Relevant tax rules:
-            ${taxRuleSnippets.joinToString("\n\n") { it }}
-            Provide 1-3 possible deduction categories if applicable.
+            ${taxRules.joinToString("\n\n") { it }}
+            
+            Classify this single invoice line (line ${lineIndex + 1}):
+            Description: $lineDescription
+            Amount: ${lineTotal ?: "unknown"}
         """.trimIndent()
+
         val messages = mutableListOf(
             OllamaMessage(role = "system", content = systemPrompt),
             OllamaMessage(role = "user", content = userPrompt),
         )
 
-        var lastRawResponse = ""
-        for (attempt in 1..MAX_JSON_PARSE_ATTEMPTS) {
+        var lastRaw = ""
+        for (attempt in 1..MAX_PARSE_ATTEMPTS) {
             val rawResponse = try {
-                ollamaClient.chat(
-                    model = props.chatModel,
-                    messages = messages,
-                    jsonFormat = true,
-                )
+                ollamaClient.chat(model = props.chatModel, messages = messages, jsonFormat = true)
             } catch (ex: OllamaException) {
-                log.error("Deduction classification failed for invoice ${extraction.id}: ${ex.message}")
-                // Return no candidates on error; don't crash the ingest pipeline.
+                log.error("LLM call failed for line $lineIndex of invoice $extractionId: ${ex.message}")
                 return emptyList()
             }
 
-            lastRawResponse = rawResponse
-            val parsed = try {
-                objectMapper.readValue(rawResponse, ClassificationResponseDto::class.java)
+            lastRaw = rawResponse
+
+            val dto = try {
+                objectMapper.readValue(rawResponse, LineClassificationResponseDto::class.java)
             } catch (ex: Exception) {
-                if (attempt == MAX_JSON_PARSE_ATTEMPTS) {
-                    log.warn("Failed to parse deduction classification JSON on attempt $attempt/$MAX_JSON_PARSE_ATTEMPTS, giving up", ex)
-                    break
+                if (attempt == MAX_PARSE_ATTEMPTS) {
+                    log.warn("Failed to parse line classification JSON for line $lineIndex (attempt $attempt), skipping", ex)
+                    return emptyList()
                 }
-                log.warn("Failed to parse deduction classification JSON on attempt $attempt/$MAX_JSON_PARSE_ATTEMPTS, retrying", ex)
                 messages += OllamaMessage(role = "assistant", content = rawResponse)
-                messages += OllamaMessage(role = "user", content = "Your previous response was not valid JSON. Return ONLY a valid JSON object with top-level key 'candidates'. No markdown, no code fences.")
+                messages += OllamaMessage(role = "user", content = "Invalid JSON. Return ONLY a JSON object with key 'candidate' (object or null). No markdown.")
                 continue
             }
 
-            val missingJustification = parsed.candidates?.any { it.justification.isNullOrBlank() } == true
-            if (missingJustification && attempt < MAX_JSON_PARSE_ATTEMPTS) {
-                log.warn("Some candidates are missing justification on attempt $attempt/$MAX_JSON_PARSE_ATTEMPTS, retrying")
-                messages += OllamaMessage(role = "assistant", content = rawResponse)
-                messages += OllamaMessage(role = "user", content = "Some candidates are missing a justification. Every candidate MUST have a non-empty 'justification' field explaining why it may be deductible. Return the full corrected JSON.")
-                continue
+            val candidate = dto.candidate ?: return emptyList() // not deductible
+
+            if (candidate.justification.isNullOrBlank()) {
+                if (attempt < MAX_PARSE_ATTEMPTS) {
+                    log.warn("Missing justification for line $lineIndex (attempt $attempt), retrying")
+                    messages += OllamaMessage(role = "assistant", content = rawResponse)
+                    messages += OllamaMessage(role = "user", content = "The candidate is missing a justification. 'justification' MUST be a non-empty string explaining why this line may be deductible.")
+                    continue
+                }
+                log.warn("Dropping candidate for line $lineIndex — justification still missing after $MAX_PARSE_ATTEMPTS attempts")
+                return emptyList()
             }
 
-            val candidates = parsed.candidates?.mapNotNull { dto ->
+            return listOf(
                 DeductionCandidate(
                     id = UUID.randomUUID(),
-                    invoiceExtractionId = extraction.id,
-                    category = dto.category ?: return@mapNotNull null,
-                    deductibleAmount = dto.deductibleAmount?.let { BigDecimal(it.toString()) },
-                    confidence = (dto.confidence ?: 0.5).coerceIn(0.0, 1.0),
-                    justification = dto.justification?.takeIf { it.isNotBlank() } ?: return@mapNotNull null,
-                    missingInformation = dto.missingInformation,
-                    suggestedNextAction = dto.suggestedNextAction,
-                    evidenceSnippets = dto.evidenceSnippets ?: emptyList(),
+                    invoiceExtractionId = extractionId,
+                    category = candidate.category ?: return emptyList(),
+                    deductibleAmount = candidate.deductibleAmount?.let { BigDecimal(it.toString()) },
+                    confidence = (candidate.confidence ?: 0.5).coerceIn(0.0, 1.0),
+                    justification = candidate.justification,
+                    missingInformation = candidate.missingInformation,
+                    suggestedNextAction = candidate.suggestedNextAction,
+                    evidenceSnippets = candidate.evidenceSnippets ?: emptyList(),
                     taxYear = taxYear,
                     status = CandidateStatus.PENDING,
                     rawLlmResponse = rawResponse,
                     createdAt = Instant.now(),
                 )
-            } ?: emptyList()
-            candidates.forEach { candidateRepo.insert(it) }
-            log.info("Classified invoice ${extraction.id} into ${candidates.size} deduction candidates")
-            return candidates
+            )
         }
 
-        log.warn(
-            "Failed to parse deduction classification JSON after $MAX_JSON_PARSE_ATTEMPTS attempts. Last response preview: ${
-                lastRawResponse.take(
-                    300
-                )
-            }"
-        )
+        log.warn("Line $lineIndex gave up after $MAX_PARSE_ATTEMPTS attempts. Preview: ${lastRaw.take(200)}")
         return emptyList()
     }
+
+    private fun buildInvoiceContext(extraction: InvoiceExtraction): String =
+        """
+        Vendor: ${extraction.vendorName ?: "Unknown"}
+        Invoice date: ${extraction.invoiceDate ?: "Unknown"}
+        Total amount: ${extraction.totalAmount ?: "Unknown"} ${extraction.currency ?: "EUR"}
+        """.trimIndent()
 
     private fun buildQuery(extraction: InvoiceExtraction): String {
         val parts = listOf(
@@ -355,8 +271,8 @@ class DeductionClassificationService(
 }
 
 @JsonIgnoreProperties(ignoreUnknown = true)
-data class ClassificationResponseDto(
-    val candidates: List<CandidateDto>? = null,
+data class LineClassificationResponseDto(
+    val candidate: CandidateDto? = null,
 )
 
 @JsonIgnoreProperties(ignoreUnknown = true)
