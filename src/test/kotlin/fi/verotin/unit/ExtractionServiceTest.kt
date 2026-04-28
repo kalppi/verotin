@@ -63,16 +63,15 @@ class ExtractionServiceTest {
               "totalAmount": 200.00,
               "currency": "EUR",
               "vatAmount": 48.00,
-              "laborAmount": null,
-              "materialAmount": null,
-              "lineItems": [
-                {
-                  "description": "Keyboard",
-                  "quantity": 1,
-                  "unitPrice": 50.00,
-                  "total": 50.00
-                }
-              ]
+              "lineItemsTable": {
+                "columns": [
+                  {"text": "Nimike", "type": "DESCRIPTION"},
+                  {"text": "Määrä", "type": "QUANTITY"},
+                  {"text": "A-hinta", "type": "UNIT_PRICE"},
+                  {"text": "Verollinen hinta", "type": "GROSS_TOTAL"}
+                ],
+                "rows": [["Keyboard", 1, 50.00, 50.00]]
+              }
             }
         """.trimIndent()
 

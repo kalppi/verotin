@@ -46,6 +46,7 @@ class DeductionClassificationService(
         // Retrieve tax rules once — shared across all line classifications.
         val taxRules = retrievalService.retrieveTaxRules(query = buildQuery(extraction), limit = 5)
         val invoiceContext = buildInvoiceContext(extraction)
+        val lineSchemaContext = inferLineSchemaContext(extraction, invoiceContext)
 
         val candidates = extraction.lineItems.flatMapIndexed { idx, line ->
             val result = classifyLine(
@@ -53,6 +54,7 @@ class DeductionClassificationService(
                 lineDescription = line.description,
                 lineTotal = line.total,
                 invoiceContext = invoiceContext,
+                lineSchemaContext = lineSchemaContext,
                 taxRules = taxRules,
                 extractionId = extraction.id,
                 taxYear = taxYear,
@@ -76,6 +78,7 @@ class DeductionClassificationService(
         lineDescription: String,
         lineTotal: BigDecimal?,
         invoiceContext: String,
+        lineSchemaContext: String?,
         taxRules: List<String>,
         extractionId: UUID,
         taxYear: Int,
@@ -223,6 +226,16 @@ class DeductionClassificationService(
         val userPrompt = """
             Invoice context:
             $invoiceContext
+
+            Inferred line-column context:
+            ${lineSchemaContext ?: "Unavailable (no clear header row detected)"}
+
+            Line pricing context:
+            {
+              "lineTotal": ${lineTotal ?: "null"},
+              "lineTotalMeaning": "VAT-inclusive line total when available",
+              "deductibleAmountRule": "Prefer lineTotal unless explicit evidence says only partial amount is deductible"
+            }
             
             Relevant tax rules:
             ${taxRules.joinToString("\n\n") { it }}
@@ -278,7 +291,10 @@ class DeductionClassificationService(
                     id = UUID.randomUUID(),
                     invoiceExtractionId = extractionId,
                     category = candidate.category ?: return emptyList(),
-                    deductibleAmount = parseDeductibleAmount(candidate.deductibleAmount),
+                    deductibleAmount = resolveDeductibleAmount(
+                        lineTotal = lineTotal,
+                        candidateAmount = parseDeductibleAmount(candidate.deductibleAmount),
+                    ),
                     confidence = (candidate.confidence ?: 0.5).coerceIn(0.0, 1.0),
                     justification = candidate.justification,
                     missingInformation = candidate.missingInformation,
@@ -294,6 +310,73 @@ class DeductionClassificationService(
 
         log.warn("Line $lineIndex gave up after $MAX_PARSE_ATTEMPTS attempts. Preview: ${lastRaw.take(200)}")
         return emptyList()
+    }
+
+    private fun inferLineSchemaContext(extraction: InvoiceExtraction, invoiceContext: String): String? {
+        val headerCandidate = extraction.lineItems.firstOrNull { looksLikeHeaderLine(it.description) } ?: return null
+        val sampleLines = extraction.lineItems.take(6).joinToString("\n") { "- ${it.description}" }
+
+        val systemPrompt = """
+            You infer invoice line column schema from OCR/LLM extracted line descriptions.
+            Return ONLY JSON with this shape:
+            {
+              "columns": ["col1", "col2"],
+              "vatInclusivePriceColumn": "string or null",
+              "vatExclusivePriceColumn": "string or null",
+              "notes": "short string"
+            }
+            Be conservative and use null when unsure.
+        """.trimIndent()
+
+        val userPrompt = """
+            Invoice context:
+            $invoiceContext
+
+            Header candidate:
+            ${headerCandidate.description}
+
+            Sample lines:
+            $sampleLines
+        """.trimIndent()
+
+        val raw = try {
+            ollamaClient.chat(
+                model = props.chatModel,
+                messages = listOf(
+                    OllamaMessage(role = "system", content = systemPrompt),
+                    OllamaMessage(role = "user", content = userPrompt),
+                ),
+                jsonFormat = true,
+            )
+        } catch (ex: OllamaException) {
+            log.debug("Line schema inference skipped due to LLM error: ${ex.message}")
+            return null
+        }
+
+        val parsed = try {
+            objectMapper.readValue(raw, LineSchemaInferenceResponseDto::class.java)
+        } catch (ex: Exception) {
+            log.debug("Line schema inference parse failed, continuing without schema context", ex)
+            return null
+        }
+
+        if (parsed.columns.isNullOrEmpty()) return null
+        return buildString {
+            append("columns=").append(parsed.columns.joinToString(", "))
+            append("; vatInclusivePriceColumn=").append(parsed.vatInclusivePriceColumn ?: "null")
+            append("; vatExclusivePriceColumn=").append(parsed.vatExclusivePriceColumn ?: "null")
+            if (!parsed.notes.isNullOrBlank()) {
+                append("; notes=").append(parsed.notes)
+            }
+        }
+    }
+
+    private fun looksLikeHeaderLine(description: String): Boolean {
+        val normalized = description.lowercase()
+        val headerTokens = listOf(
+            "tuotekoodi", "nimike", "maara", "yksikko", "a-hinta", "veroton", "verollinen", "alv",
+        )
+        return headerTokens.count { normalized.contains(it) } >= 3
     }
 
     private fun buildInvoiceContext(extraction: InvoiceExtraction): String =
@@ -322,6 +405,25 @@ class DeductionClassificationService(
         }
     }
 
+    private fun resolveDeductibleAmount(lineTotal: BigDecimal?, candidateAmount: BigDecimal?): BigDecimal? {
+        if (lineTotal == null) return candidateAmount
+        if (candidateAmount == null) return lineTotal
+
+        if (isLikelyVatExclusive(candidateAmount, lineTotal)) {
+            return lineTotal
+        }
+        return candidateAmount
+    }
+
+    private fun isLikelyVatExclusive(candidateAmount: BigDecimal, vatInclusiveTotal: BigDecimal): Boolean {
+        if (candidateAmount <= BigDecimal.ZERO || vatInclusiveTotal <= BigDecimal.ZERO) return false
+        if (candidateAmount >= vatInclusiveTotal) return false
+
+        val ratio = candidateAmount.divide(vatInclusiveTotal, 4, java.math.RoundingMode.HALF_UP)
+        // VAT 24% exclusive-to-inclusive ratio is ~0.8065; allow a small margin for extraction noise.
+        return ratio >= BigDecimal("0.78") && ratio <= BigDecimal("0.83")
+    }
+
     private fun buildQuery(extraction: InvoiceExtraction): String {
         val parts = listOf(
             extraction.vendorName ?: "",
@@ -346,3 +448,12 @@ data class CandidateDto(
     val suggestedNextAction: String? = null,
     val evidenceSnippets: List<String>? = null,
 )
+
+@JsonIgnoreProperties(ignoreUnknown = true)
+data class LineSchemaInferenceResponseDto(
+    val columns: List<String>? = null,
+    val vatInclusivePriceColumn: String? = null,
+    val vatExclusivePriceColumn: String? = null,
+    val notes: String? = null,
+)
+

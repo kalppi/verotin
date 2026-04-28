@@ -29,4 +29,5 @@ data class LineItem(
     val quantity: Double?,
     val unitPrice: BigDecimal?,
     val total: BigDecimal?,
+    val totalType: String? = null, // "GROSS_TOTAL", "NET_TOTAL", or null if unknown
 )
