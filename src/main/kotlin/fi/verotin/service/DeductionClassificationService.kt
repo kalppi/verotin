@@ -264,7 +264,7 @@ class DeductionClassificationService(
                     id = UUID.randomUUID(),
                     invoiceExtractionId = extractionId,
                     category = candidate.category ?: return emptyList(),
-                    deductibleAmount = candidate.deductibleAmount?.let { BigDecimal(it.toString()) },
+                    deductibleAmount = parseDeductibleAmount(candidate.deductibleAmount),
                     confidence = (candidate.confidence ?: 0.5).coerceIn(0.0, 1.0),
                     justification = candidate.justification,
                     missingInformation = candidate.missingInformation,
@@ -289,6 +289,25 @@ class DeductionClassificationService(
         Total amount: ${extraction.totalAmount ?: "Unknown"} ${extraction.currency ?: "EUR"}
         """.trimIndent()
 
+    private fun parseDeductibleAmount(raw: Any?): BigDecimal? {
+        return when (raw) {
+            null -> null
+            is Number -> BigDecimal(raw.toString())
+            is String -> {
+                val compact = raw.trim()
+                if (compact.isEmpty()) return null
+                // Accept common Finnish-formatted model outputs like "483,00" or "1 234,56 EUR".
+                val normalized = compact
+                    .replace(" ", "")
+                    .replace("EUR", "", ignoreCase = true)
+                    .replace("€", "")
+                    .replace(',', '.')
+                normalized.toBigDecimalOrNull()
+            }
+            else -> raw.toString().toBigDecimalOrNull()
+        }
+    }
+
     private fun buildQuery(extraction: InvoiceExtraction): String {
         val parts = listOf(
             extraction.vendorName ?: "",
@@ -307,7 +326,7 @@ data class LineClassificationResponseDto(
 data class CandidateDto(
     val category: String? = null,
     val confidence: Double? = null,
-    val deductibleAmount: Number? = null,
+    val deductibleAmount: Any? = null,
     val justification: String? = null,
     val missingInformation: String? = null,
     val suggestedNextAction: String? = null,
