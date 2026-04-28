@@ -1,0 +1,676 @@
+FINNISH TAX DEDUCTION RULES AND REGULATIONS - 2026
+Classifier-oriented version
+
+PURPOSE
+=======
+These rules are for categorizing Finnish invoice lines, receipts and expenses
+into likely tax deduction categories.
+
+The goal is NOT only to describe deductions, but to prevent false positives.
+Each category includes:
+- positive signals
+- hard exclusions
+- classification priority
+- examples
+
+MANDATORY CLASSIFICATION PROCESS
+================================
+
+STEP 0: Identify expense domain
+-------------------------------
+Every expense MUST first be assigned to one primary domain:
+
+A) Household / private home / holiday home
+B) Work / income acquisition / business
+C) Vehicle / transport
+D) Business travel
+E) Membership / insurance
+F) Unclear / needs manual review
+
+Domain rules:
+- If the line concerns installation, repair, renovation, maintenance or
+  improvement of a home, apartment, yard, building, heating system, cooling
+  system, electricity system, plumbing, solar panels or heat pump:
+  → classify domain as Household.
+
+- If the line concerns tools, devices, software, books, training or work
+  equipment used for earning income:
+  → classify domain as Work / income acquisition / business.
+
+- If the line explicitly concerns a car, vehicle, fuel, charging, mileage,
+  tyres, maintenance of a vehicle, parking, leasing or vehicle insurance:
+  → classify domain as Vehicle / transport.
+
+- If the line concerns accommodation, flights, trains, taxis, business-trip
+  meals, travel tickets or temporary work trips:
+  → classify domain as Business travel.
+
+- If the line concerns professional insurance, unemployment fund fees or
+  professional memberships:
+  → classify domain as Membership / insurance.
+
+- If the line is too generic, for example "service", "work", "installation",
+  or "fee" without object:
+  → classify as Unclear / needs manual review.
+
+STEP 1: Apply priority rules
+----------------------------
+Priority order:
+
+1. Kotitalousvähennys
+2. Vehicle / transport expenses
+3. Travel expenses
+4. Tools and equipment
+5. Training and professional development
+6. Insurance and memberships
+7. Home office deduction
+8. Meals and hospitality
+9. Depreciation
+10. Unclear / manual review
+
+Important:
+- If work is performed on a private home or holiday home, prefer
+  Kotitalousvähennys over work/business categories.
+- If the item is a vehicle expense, prefer Vehicle over Travel unless it is
+  clearly part of a temporary business trip.
+- Do NOT classify based on one generic word only. "Asennus" alone is not enough;
+  the object of installation matters.
+
+1. KOTITALOUSVÄHENNYS
+=====================
+
+Description:
+Kotitalousvähennys is a tax credit for eligible household, care, maintenance,
+installation and renovation work performed at a taxpayer's home or holiday home.
+
+Strong positive signals:
+- kotitalousvähennys
+- koti
+- asunto
+- omakotitalo
+- mökki
+- vapaa-ajan asunto
+- piha
+- remontti
+- korjaus
+- kunnossapito
+- huolto
+- asennus
+- perusasennus
+- saneeraus
+- siivous
+- hoivatyö
+- hoitotyö
+- pihatyö
+- lumityö
+- puutarhatyö
+
+Home system / renovation signals:
+- ilmalämpöpumppu
+- lämpöpumppu
+- maalämpö
+- lämmitys
+- ilmastointi
+- ilmanvaihto
+- sähkötyö
+- putkityö
+- vesijohto
+- viemäri
+- aurinkopaneeli
+- öljylämmitys
+- öljylämmityksestä luopuminen
+
+Deductible:
+- Labour portion of eligible work.
+- Work bought from a company in the prepayment register.
+- Direct wages and employer side costs if hiring a person directly.
+
+Not deductible:
+- Materials
+- Equipment
+- Devices
+- Travel costs
+- Freight / delivery
+- Inspection-only work
+- New construction
+- Work not done at home or holiday home
+- Work where the invoice does not separate labour from materials
+
+2026 deduction amounts:
+- Standard household, care and renovation work:
+  - 35% of VAT-included labour cost when bought from a company
+  - maximum €1,600 per person per year
+  - own-risk amount €150 per person per year
+
+- Oil heating replacement:
+  - 60% of VAT-included labour cost when bought from a company
+  - maximum €3,500 per person per year
+  - own-risk amount €150 per person per year
+
+Hard exclusions:
+- Do NOT classify as Vehicle just because the line contains "pump", "engine",
+  "installation" or "maintenance".
+- Do NOT classify as Home office just because the work happens at home.
+- Do NOT classify heat pump, solar panel, plumbing, electrical or renovation
+  work as office equipment.
+
+Classifier examples:
+- "ilmalämpöpumpun perusasennus"
+  → Kotitalousvähennys
+  → Reason: heat pump + installation = home improvement labour
+  → Deductible only if labour portion is separated
+
+- "ilmalämpöpumppu"
+  → Not directly deductible as kotitalousvähennys
+  → Reason: device/equipment, not labour
+
+- "ilmalämpöpumpun huolto"
+  → Kotitalousvähennys candidate
+  → Reason: maintenance work on home system
+
+- "aurinkopaneelien asennus"
+  → Kotitalousvähennys
+  → Reason: installation work on home energy system
+
+- "remonttitarvikkeet"
+  → Not deductible as kotitalousvähennys
+  → Reason: materials
+
+2. HOME OFFICE DEDUCTIONS (Työhuonevähennys)
+============================================
+
+Description:
+Työhuonevähennys concerns the use of a room or workspace for income acquisition.
+
+Important 2026 employee rule:
+- Employees can no longer claim the home office deduction from wage income
+  for working at home or at a holiday home.
+- Employees still receive the automatic income-acquisition deduction where
+  applicable, but home-office deduction itself is not available for 2026
+  wage income.
+
+For non-wage income:
+Standard home office deductions may still apply:
+- €980: continuous full-time use, or working at home more than half of workdays
+- €490: continuous part-time use, or 25–50% of workdays
+- €245: occasional but repeated work use
+
+Positive signals:
+- työhuone
+- kotitoimisto
+- etätyötila
+- työtila
+- workspace
+- office room
+- room used for work
+
+Deductible:
+- Use of workspace for income acquisition, where allowed.
+- Actual workspace expenses if properly documented and directly related.
+
+Hard exclusions:
+- Do NOT classify home repairs, heating, plumbing, electrical work or heat pump
+  installation as Työhuonevähennys.
+- Do NOT classify furniture or devices automatically as Työhuonevähennys;
+  use Tools and equipment instead.
+- Do NOT classify employee remote-work costs as Työhuonevähennys for 2026
+  wage income.
+
+Classifier examples:
+- "työhuonevähennys"
+  → Home office deduction
+
+- "kotitoimiston vuokraosuus"
+  → Home office deduction candidate
+
+- "ilmalämpöpumpun perusasennus"
+  → NOT Home office deduction
+  → Use Kotitalousvähennys
+
+3. OFFICE EQUIPMENT AND SUPPLIES (Työvälineet)
+==============================================
+
+Description:
+Tools, devices and equipment needed for work or income acquisition.
+
+Positive signals:
+- työväline
+- tietokone
+- näyttö
+- näppäimistö
+- hiiri
+- työtuoli
+- työpöytä
+- ohjelmisto
+- lisenssi
+- kuulokkeet
+- kamera
+- mikrofoni
+- tulostin
+- toimistotarvike
+- office equipment
+- work equipment
+
+Deductible:
+- Work tools and equipment used to earn income.
+- Maintenance and repair of work tools.
+- Computer and telecommunications costs if used for work.
+
+2026 threshold:
+- If a work tool costs less than €1,200, it can usually be deducted fully
+  in the year of purchase.
+- If the item costs more than €1,200 and has a useful life over 3 years,
+  it is usually depreciated over time.
+
+Computer / internet use:
+- 0% if there is no evidence of work use
+- 50% if there is evidence of work use
+- 100% if mainly used for work or for significant side income
+
+Hard exclusions:
+- Do NOT classify home renovation, heat pump installation, plumbing,
+  electrical work or other home system work as office equipment.
+- Do NOT classify vehicle parts as office equipment.
+- Do NOT classify training as equipment.
+
+Classifier examples:
+- "näyttö työkäyttöön"
+  → Tools and equipment
+
+- "kannettava tietokone"
+  → Tools and equipment
+
+- "ilmalämpöpumpun perusasennus"
+  → NOT Tools and equipment
+  → Use Kotitalousvähennys if labour at home
+
+4. PROFESSIONAL DEVELOPMENT AND TRAINING (Koulutus)
+===================================================
+
+Description:
+Training costs may be deductible when they maintain or develop existing
+professional competence.
+
+Positive signals:
+- koulutus
+- kurssi
+- seminaari
+- konferenssi
+- sertifikaatti
+- workshop
+- webinaari
+- ammattikirjallisuus
+- professional training
+- certification
+
+Deductible:
+- Courses related to current work or business
+- Professional certifications
+- Seminars and conferences
+- Professional books and publications
+- Online learning platforms, if directly work-related
+
+Not deductible:
+- Initial education for a new profession
+- Hobby courses
+- General personal development without work connection
+- Training unrelated to current income acquisition
+
+Hard exclusions:
+- Do NOT classify installation, repair, tools, travel tickets or meals as
+  training unless the invoice clearly concerns training.
+
+Classifier examples:
+- "AWS certification exam"
+  → Training / professional development
+
+- "React kurssi"
+  → Training candidate if related to current work
+
+5. VEHICLE AND FUEL EXPENSES (Polttoaine ja ajoneuvokulut)
+==========================================================
+
+Description:
+Vehicle expenses concern vehicles and driving for business or income-producing
+purposes.
+
+Required vehicle signals:
+At least one direct vehicle/transport signal should be present:
+- auto
+- ajoneuvo
+- pakettiauto
+- kuorma-auto
+- moottoripyörä
+- polttoaine
+- bensiini
+- diesel
+- lataus
+- sähköauton lataus
+- renkaat
+- katsastus
+- huolto, when clearly vehicle maintenance
+- autovakuutus
+- pysäköinti
+- kilometrikorvaus
+- km
+- leasing
+
+Deductible:
+- Fuel or charging for business trips
+- Vehicle maintenance and repairs for business-use portion
+- Insurance for business-use portion
+- Parking for business trips
+- Depreciation or leasing for business-use portion
+- Mileage-based deductions where applicable
+
+2026 reference:
+- Tax-free kilometre allowance for car use: €0.55/km
+
+Recordkeeping:
+- Mileage log
+- Date
+- Route
+- Distance
+- Business purpose
+- Separation of business and private use
+
+Hard exclusions:
+- Do NOT classify home installation, heat pump installation, renovation,
+  plumbing or electrical work as vehicle expense.
+- Do NOT classify "perusasennus" as vehicle expense unless the object is
+  explicitly a vehicle part or vehicle accessory.
+- Do NOT classify "pumppu" as vehicle expense unless it clearly means a
+  vehicle fuel pump, water pump or similar vehicle component.
+
+Classifier examples:
+- "diesel työajo"
+  → Vehicle and fuel
+
+- "auton huolto"
+  → Vehicle and fuel
+
+- "ilmalämpöpumpun perusasennus"
+  → NOT Vehicle
+  → Use Kotitalousvähennys
+
+6. MEALS AND HOSPITALITY (Ruoka ja vieraanvaraisuus)
+====================================================
+
+Description:
+Meals may be deductible when they are linked to business travel, client meetings
+or income acquisition.
+
+Positive signals:
+- lounas
+- päivällinen
+- ravintola
+- asiakastapaaminen
+- edustus
+- meal
+- lunch
+- dinner
+- hospitality
+- catering
+
+Deductible:
+- Business meals with documented business purpose
+- Meals during business travel
+- Client/partner meals where attendees and purpose are documented
+
+2026 travel allowance references:
+- Full domestic daily allowance: €54
+- Partial domestic daily allowance: €25
+- Meal allowance: €13.50
+
+Hard exclusions:
+- Personal meals are not deductible.
+- Groceries for private use are not deductible.
+- Alcohol or entertainment may be restricted.
+- Do NOT classify training fees, travel tickets or tools as meals.
+
+Classifier examples:
+- "lounas asiakaspalaveri"
+  → Meals and hospitality candidate
+
+- "hotelliaamiainen työmatkalla"
+  → Travel-related meal candidate
+
+7. TRAVEL EXPENSES (Matkakulut)
+===============================
+
+Description:
+Travel expenses concern temporary work trips or business trips.
+
+Positive signals:
+- lento
+- juna
+- bussi
+- taksi
+- hotelli
+- majoitus
+- työmatka
+- business trip
+- travel
+- accommodation
+- flight
+- train ticket
+
+Deductible:
+- Accommodation during business travel
+- Flights, trains, buses and taxis for business trips
+- Car rental for business use
+- Travel-related meals according to travel rules
+
+Commuting:
+- Normal commuting between home and regular workplace is not business travel.
+- For employee commuting deductions in 2026:
+  - Maximum deduction: €7,000
+  - Own-risk amount: €900
+
+Hard exclusions:
+- Do NOT classify vehicle maintenance as travel unless it is clearly a direct
+  cost of a specific business trip.
+- Do NOT classify home installation work as travel.
+- Do NOT classify normal commuting as business travel.
+
+Classifier examples:
+- "juna Helsinki-Tampere asiakastapaaminen"
+  → Travel expenses
+
+- "hotelli konferenssimatka"
+  → Travel expenses
+
+8. INSURANCE AND PROFESSIONAL MEMBERSHIP
+========================================
+
+Description:
+Professional and business-related insurance and some memberships may be
+deductible.
+
+Positive signals:
+- vastuuvakuutus
+- yrittäjän vakuutus
+- laitevakuutus
+- omaisuusvakuutus
+- työttömyyskassa
+- ammattijärjestö
+- professional association
+- liability insurance
+
+Deductible:
+- Professional liability insurance
+- Equipment/property insurance for business use
+- Business-related professional association fees
+- Unemployment fund fees
+
+Important 2026 rule:
+- Trade union / labour market organisation membership fees are no longer
+  deductible from 1 January 2026.
+- Unemployment fund fees remain deductible.
+
+Hard exclusions:
+- Private life insurance and private health insurance are generally not
+  deductible as work expenses.
+- Do NOT classify general service fees or training as membership/insurance
+  without explicit membership or insurance wording.
+
+Classifier examples:
+- "työttömyyskassan jäsenmaksu"
+  → Insurance / membership, deductible
+
+- "ammattiliiton jäsenmaksu"
+  → Not deductible from 2026
+
+9. DEPRECIATION (Poistot)
+=========================
+
+Description:
+Depreciation applies to larger assets that are used for income acquisition
+over several years.
+
+Positive signals:
+- käyttöomaisuus
+- kalusto
+- kone
+- laite
+- investointi
+- poisto
+- depreciation
+- asset
+
+Rules:
+- Small work tools under €1,200 can usually be deducted immediately.
+- Larger assets are usually depreciated over time if useful life exceeds
+  3 years.
+- Business machinery and equipment are commonly depreciated annually from
+  remaining balance.
+- Computers and work equipment are often treated under tools/equipment first.
+
+Sole trader small acquisition rule:
+- Small acquisitions up to €1,200 each can be deducted immediately.
+- Total small acquisition deduction limit: €3,600 per year.
+
+Hard exclusions:
+- Do NOT use depreciation for kotitalousvähennys labour.
+- Do NOT depreciate private home renovation as business equipment.
+- Do NOT classify consumables as depreciation.
+
+Classifier examples:
+- "työkone 2 500 euroa"
+  → Depreciation candidate
+
+- "laptop 900 euroa"
+  → Tools and equipment, immediate deduction candidate
+
+10. HOME OFFICE AREA CALCULATION
+================================
+
+Use only when actual workspace costs are relevant and allowed.
+
+Do NOT use this calculation for:
+- Employee wage-income home office deduction in 2026
+- Heat pump installation
+- Home renovation work
+- Furniture or work devices
+- Kotitalousvähennys labour
+
+Example:
+Home size: 100 m²
+Dedicated income-producing workspace: 20 m²
+Workspace percentage: 20 / 100 = 20%
+Eligible annual housing costs: €10,000
+Potential business-use share: €2,000
+
+Actual-cost deductions require documentation and must be justifiable.
+
+11. IMPORTANT DOCUMENTATION REQUIREMENTS
+========================================
+
+For all deductions, keep:
+- Original receipts and invoices
+- Proof of payment
+- Business/work purpose documentation
+- Mileage logs for vehicle use
+- Course descriptions and certificates for training
+- Attendee and purpose notes for business meals
+- Labour/material separation for kotitalousvähennys
+- Records for at least 6 years where accounting rules require it
+
+For kotitalousvähennys:
+- Invoice must separate labour from materials.
+- Company should be in the prepayment register.
+- Only labour is deductible.
+
+For vehicle expenses:
+- Keep a mileage log.
+- Separate business and private driving.
+- Record purpose of each trip.
+
+For tools:
+- Keep receipt.
+- Document work use percentage if mixed use.
+
+GENERAL NON-DEDUCTIBLE EXPENSES
+===============================
+
+Usually non-deductible:
+- Personal living expenses
+- Private meals
+- Normal commuting, except separate commuting deduction rules
+- Private insurance
+- Entertainment for personal guests
+- Materials for kotitalousvähennys
+- Devices/equipment under kotitalousvähennys
+- Trade union membership fees from 2026
+- New construction under kotitalousvähennys
+- Expenses without documentation
+
+CLASSIFICATION EXAMPLES
+=======================
+
+"ilmalämpöpumpun perusasennus"
+→ Category: Kotitalousvähennys
+→ Reason: heat pump + installation = home improvement labour
+→ Deductible: labour only
+→ Not deductible: pump/device/materials/travel
+→ Do NOT classify as Vehicle
+→ Do NOT classify as Home office
+→ Do NOT classify as Tools
+
+"ilmalämpöpumppu"
+→ Category: Non-deductible equipment/material for kotitalousvähennys purposes
+→ Reason: device itself is not labour
+
+"auton määräaikaishuolto"
+→ Category: Vehicle and fuel expenses
+→ Reason: explicit vehicle maintenance
+
+"näyttö työkäyttöön"
+→ Category: Tools and equipment
+→ Reason: work equipment
+
+"työhuonevähennys"
+→ Category: Home office deduction
+→ Note: not available for 2026 wage income
+
+"siivous kotona"
+→ Category: Kotitalousvähennys
+→ Reason: household work
+
+"lento asiakastapaamiseen"
+→ Category: Travel expenses
+→ Reason: business travel
+
+"ammattiliiton jäsenmaksu"
+→ Category: Not deductible from 2026
+→ Reason: trade union fees no longer deductible
+
+"työttömyyskassan jäsenmaksu"
+→ Category: Insurance / membership
+→ Reason: unemployment fund fees remain deductible
+
+FINAL NOTE
+==========
+These rules are for classification and preliminary deduction analysis.
+Final deductibility depends on taxpayer type, income type, documentation,
+invoice details and current Verohallinto guidance.

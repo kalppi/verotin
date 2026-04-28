@@ -294,5 +294,64 @@ class DeductionClassificationServiceTest {
         // Should return empty list, not crash
         assertTrue(candidates.isEmpty())
     }
+
+    @Test
+    fun `classify retries once when first JSON is malformed and then succeeds`() {
+        val extraction = InvoiceExtraction(
+            id = UUID.randomUUID(),
+            sourceDocumentId = UUID.randomUUID(),
+            vendorName = "Vendor",
+            invoiceNumber = null,
+            invoiceDate = null,
+            paymentDate = null,
+            totalAmount = BigDecimal("120.00"),
+            currency = "EUR",
+            vatAmount = null,
+            laborAmount = null,
+            materialAmount = null,
+            lineItems = emptyList(),
+            rawLlmResponse = "{}",
+            extractedAt = Instant.now(),
+        )
+
+        val validJson = """
+            {
+              "candidates": [
+                {
+                  "category": "tyovaline",
+                  "confidence": 0.7,
+                  "deductibleAmount": 120,
+                  "justification": "Work equipment purchase",
+                  "missingInformation": null,
+                  "suggestedNextAction": null,
+                  "evidenceSnippets": ["equipment"]
+                }
+              ]
+            }
+        """.trimIndent()
+
+        every { retrieverService.retrieveTaxRules(any(), any()) } returns emptyList()
+        every {
+            ollamaClient.chat(
+                model = props.chatModel,
+                messages = any(),
+                jsonFormat = true,
+            )
+        } returnsMany listOf("{ invalid json", validJson)
+        every { candidateRepo.insert(any()) } returns Unit
+
+        val candidates = classificationService.classify(extraction)
+
+        assertEquals(1, candidates.size)
+        assertEquals("tyovaline", candidates[0].category)
+        verify(exactly = 2) {
+            ollamaClient.chat(
+                model = props.chatModel,
+                messages = any(),
+                jsonFormat = true,
+            )
+        }
+        verify(exactly = 1) { candidateRepo.insert(any()) }
+    }
 }
 

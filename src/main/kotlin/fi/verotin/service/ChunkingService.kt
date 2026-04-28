@@ -17,7 +17,7 @@ class ChunkingService(
     private val overlapSize: Int = DEFAULT_OVERLAP,
 ) {
     companion object {
-        const val DEFAULT_WINDOW = 1500  // ~500 tokens at ~3 chars/token
+        const val DEFAULT_WINDOW = 1000
         const val DEFAULT_OVERLAP = 200
     }
     /**

@@ -38,7 +38,7 @@ class FixtureIngestRunner(
         log.info("Fixture ingest complete")
     }
     private fun ingestTaxRules() {
-        val resource = resourceLoader.getResource("classpath:fixtures/tax_rules_fi_2024.txt")
+        val resource = resourceLoader.getResource("classpath:fixtures/tax_rules_fi_2026.txt")
         if (!resource.exists()) {
             log.warn("Tax rules file not found")
             return
@@ -54,7 +54,7 @@ class FixtureIngestRunner(
     }
     private fun ingestFixtures() {
         // Ingest fixtures using byte-accurate reads so binary files (e.g. PDFs) are not corrupted.
-        listOf(/*"sample_invoice_1.eml", "sample_invoice_2.eml", */"Kuitti 128255003 - Verkkokauppa.com.pdf").forEach { filename ->
+        listOf(/*"sample_invoice_1.eml", "sample_invoice_2.eml", "Kuitti 128255003 - Verkkokauppa.com.pdf" "Lasku_2490.pdf"*/ "Invoice_102509.pdf",).forEach { filename ->
             try {
                 val resource = resourceLoader.getResource("classpath:fixtures/$filename")
                 if (!resource.exists()) {

@@ -12,7 +12,7 @@ import java.util.UUID
 data class DeductionCandidate(
     val id: UUID,
     val invoiceExtractionId: UUID,
-    /** Finnish deduction category, e.g. 'tyovaline', 'tyohuonevahennys', 'koulutus' */
+    /** Finnish deduction category, e.g. 'työvöline', 'tyohuonevähennys', 'koulutus' */
     val category: String,
     val deductibleAmount: BigDecimal?,
     /** 0.0 – 1.0; reflects LLM uncertainty, NOT a legal certainty */
