@@ -5,6 +5,7 @@ import fi.verotin.domain.CandidateStatus
 import fi.verotin.domain.DeductionCandidate
 import fi.verotin.domain.InvoiceExtraction
 import fi.verotin.ollama.OllamaClient
+import fi.verotin.ollama.OllamaException
 import fi.verotin.ollama.OllamaMessage
 import fi.verotin.repository.DeductionCandidateRepository
 import fi.verotin.service.DeductionClassificationService
@@ -134,7 +135,7 @@ class DeductionClassificationServiceTest {
                 messages = any(),
                 jsonFormat = true,
             )
-        } throws RuntimeException("LLM API error")
+        } throws OllamaException("LLM API error")
 
         val candidates = classificationService.classify(extraction)
 

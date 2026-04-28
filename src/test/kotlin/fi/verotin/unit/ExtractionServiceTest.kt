@@ -3,6 +3,7 @@ package fi.verotin.unit
 import fi.verotin.config.OllamaProperties
 import fi.verotin.domain.SourceDocument
 import fi.verotin.ollama.OllamaClient
+import fi.verotin.ollama.OllamaException
 import fi.verotin.ollama.OllamaMessage
 import fi.verotin.repository.InvoiceExtractionRepository
 import fi.verotin.service.ExtractionService
@@ -33,7 +34,7 @@ class ExtractionServiceTest {
     fun setup() {
         ollamaClient = mockk()
         extractionRepo = mockk()
-        props = OllamaProperties(chatModel = "llama3", embedding​Dimensions = 1024)
+        props = OllamaProperties(chatModel = "llama3", embeddingDimensions = 1024)
         extractionService = ExtractionService(
             ollamaClient = ollamaClient,
             props = props,
@@ -89,9 +90,9 @@ class ExtractionServiceTest {
         assertEquals("Tech Store", extraction.vendorName)
         assertEquals("2024-001", extraction.invoiceNumber)
         assertEquals(LocalDate.of(2024, 2, 15), extraction.invoiceDate)
-        assertEquals(BigDecimal("200.00"), extraction.totalAmount)
+        assertEquals(0, BigDecimal("200.0").compareTo(extraction.totalAmount))
         assertEquals("EUR", extraction.currency)
-        assertEquals(BigDecimal("48.00"), extraction.vatAmount)
+        assertEquals(0, BigDecimal("48.0").compareTo(extraction.vatAmount))
         assertEquals(1, extraction.lineItems.size)
         assertEquals("Keyboard", extraction.lineItems[0].description)
         assertNull(extraction.paymentDate)
@@ -192,7 +193,7 @@ class ExtractionServiceTest {
                 messages = any(),
                 jsonFormat = true,
             )
-        } throws RuntimeException("Connection timeout")
+        } throws OllamaException("Connection timeout")
         every { extractionRepo.insert(any()) } returns Unit
 
         val extraction = extractionService.extract(doc)

@@ -32,8 +32,8 @@ import kotlin.test.assertTrue
 @DisplayName("Ingest Pipeline Integration Tests")
 class IngestPipelineIntegrationTest {
 
-    @Container
     companion object {
+        @Container
         @JvmStatic
         private val postgres = PostgreSQLContainer("pgvector/pgvector:pg16")
             .withDatabaseName("verotin_test")

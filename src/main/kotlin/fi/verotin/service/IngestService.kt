@@ -1,8 +1,11 @@
 package fi.verotin.service
 import fi.verotin.domain.SourceDocument
 import fi.verotin.repository.SourceDocumentRepository
+import org.apache.pdfbox.Loader
+import org.apache.pdfbox.text.PDFTextStripper
 import org.slf4j.LoggerFactory
 import org.springframework.stereotype.Service
+import java.io.ByteArrayInputStream
 import java.security.MessageDigest
 import java.time.Instant
 import java.util.UUID
@@ -69,8 +72,8 @@ class IngestService(
     }
     private fun parsePdf(bytes: ByteArray): String {
         return try {
-            org.apache.pdfbox.pdmodel.PDDocument.load(bytes).use { doc ->
-                org.apache.pdfbox.text.PDFTextStripper().getText(doc)
+            Loader.loadPDF(bytes).use { doc ->
+                PDFTextStripper().getText(doc)
             }
         } catch (ex: Exception) {
             log.warn("PDF text extraction failed, storing empty content", ex)

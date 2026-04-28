@@ -7,6 +7,7 @@ import fi.verotin.repository.DocumentChunkRepository
 import fi.verotin.repository.TaxRuleChunkRepository
 import fi.verotin.config.OllamaProperties
 import fi.verotin.ollama.OllamaClient
+import fi.verotin.ollama.OllamaException
 import io.mockk.every
 import io.mockk.mockk
 import org.junit.jupiter.api.BeforeEach
@@ -159,7 +160,7 @@ class RetrieverServiceTest {
     fun `retrieval returns empty list on embedding failure`() {
         val query = "test"
 
-        val testException = RuntimeException("Embedding API error")
+        val testException = OllamaException("Embedding API error")
         every { ollamaClient.embed(props.embedModel, query) } throws testException
 
         val results = retrieverService.retrieveDocumentChunks(query, limit = 5)

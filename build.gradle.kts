@@ -32,11 +32,13 @@ dependencies {
     // Testing
     testImplementation("org.springframework.boot:spring-boot-starter-test")
     testImplementation("org.springframework.boot:spring-boot-testcontainers")
+    testImplementation("org.junit.platform:junit-platform-launcher")
     testImplementation("org.testcontainers:postgresql")
     testImplementation("org.testcontainers:junit-jupiter")
     testImplementation("io.mockk:mockk:1.13.12")
     testImplementation("com.squareup.okhttp3:mockwebserver:4.12.0")
     testImplementation("org.assertj:assertj-core")
+    testImplementation("org.jetbrains.kotlin:kotlin-test")
 }
 tasks.withType<KotlinCompile> {
     kotlinOptions {
