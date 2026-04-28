@@ -103,15 +103,31 @@ class DeductionClassificationService(
             or clearly deductible expense based on EXPLICIT FINNISH TAX RULES.
             
             ======================================================================
-            LABOUR SIGNALS — line MUST contain ONE of these EXACT WORDS/PHRASES to be kotitalousvähennys:
+            LABOUR SIGNALS — line MUST contain a ROOT WORD related to these to be kotitalousvähennys:
             ======================================================================
             
-            Strong labour signals (REQUIRED):
-            tuntityö, työ, työn osuus, asennustyö, sähkötyö, putkityö, huoltotyö,
-            korjaustyö, asennus, perusasennus, huolto, korjaus, remontti, palvelu
+            Case-insensitive: Match any capitalization (e.g., "Sähkötyö", "sähkötyö", "SÄHKÖTYÖ" are all labour)
+            
+            Root labour signals (match any form):
+            
+            työ (työ, työt, työstä, työhön, työtä, työn osuus, tuntityö, asennustyö, sähkötyö,
+                 putkityö, huoltotyö, korjaustyö)
+            
+            asennus (asennus, asennuksen, asennukseen, asennusta, asennustyö, perusasennus,
+                     asennukset)
+            
+            huolto (huolto, huollon, huollosta, huoltaminen, huoltotyö, huollon osuus, huoltopalvelu)
+            
+            korjaus (korjaus, korjauksen, korjaukseen, korjausta, korjaustyö, korjaaminen,
+                     korjattava, korjauspalvelu)
+            
+            remontti (remontti, remontin, remonttiin, remonttia, koko remontti, osittainen remontti,
+                      remontointityö)
+            
+            palvelu (palvelu, palvelun, palveluista, palvelusta, palvelut, lakisääteinen palvelu)
             
             Special case:
-            "Tuntityö" = hourly labour → ALWAYS labour candidate (if clear from context)
+            "Tuntityö" (any form) = hourly labour → ALWAYS labour candidate if explicitly written
             
             ======================================================================
             PRODUCT / MATERIAL / NON-DEDUCTIBLE — NEVER labour:
@@ -139,9 +155,21 @@ class DeductionClassificationService(
             
             1. NEGATIVE SIGNAL detected → { "candidate": null }
             2. Product code or SKU detected → { "candidate": null }
-            3. Strong material signal on this line → { "candidate": null }
-            4. Strong labour signal on this line → labour candidate
+            3. Strong labour signal on this line → labour candidate (EVEN IF materials/components are mentioned)
+            4. Strong material signal on this line (with NO labour signal) → { "candidate": null }
             5. If unsure → { "candidate": null }
+            
+            *** IMPORTANT: If a line contains a labour signal keyword + material keywords ***
+            
+            Pattern: "[Labour signal], sis. [material]" or "[Labour], [material]"
+            Example: "Sähkötyö, sis. turvakytkin" → LABOUR (the switch is part of the electrical work)
+            Example: "Asennus, levy + kaapeli" → LABOUR (materials are part of the installation service)
+            
+            Interpretation: The labour part is the primary service. Materials/components listed
+            are just describing what's included in that service—NOT a reason to reject the candidate.
+            
+            Exception: If the line is ONLY materials with NO labour signal, reject it.
+            Example: "Turvakytkin, levy, kaapeli" → { "candidate": null }
             
             NEVER infer labour from ambiguous abbreviations or codes.
             NEVER manufacture deduction categories.
