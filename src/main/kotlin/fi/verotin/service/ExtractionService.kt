@@ -57,15 +57,16 @@ class ExtractionService(
             - lineItemsTable.columns should contain extracted header names in order with:
               - text: exact header text seen in document
               - type: one of
-                - CODE
-                - DESCRIPTION (nimike, otsikko)
-                - QUANTITY (määrä, kpl)
+                - CODE (tuotekoodi, artikkelinumero)
+                - DESCRIPTION (nimike, tuotenimi, kuvaus, selite, otsikko)
+                - QUANTITY (määrä, kpl, lkm)
                 - UNIT (yksikkö)
-                - UNIT_PRICE (à, à-hinta, a-hinta)
-                - NET_TOTAL (veroton hinta)
-                - GROSS_TOTAL (verollinen hinta)
-                - VAT_RATE (%, alv, alv-%)
-                - UNKNOWN (if determining meaning is unclear)
+                - UNIT_PRICE (à-hinta, a-hinta, yksikköhinta)
+                - NET_TOTAL (veroton hinta, veroton, netto)
+                - GROSS_TOTAL (verollinen hinta, verollinen, brutto)
+                - VAT_RATE (alv-%, alv, vero-%)
+                - UNKNOWN — use this for ANY column that does not clearly match one of the above (e.g. unit/yksikkö, discount/alennus, weight, notes, or any ambiguous column)
+            - IMPORTANT: it is better to mark a column UNKNOWN than to assign a wrong type. Only assign a type when you are certain.
             - Product title/name column must be typed as DESCRIPTION whenever present (e.g. Nimike, Tuotenimi, Kuvaus, Selite).
             - Each line has title/description. If title is split across columns, keep the most descriptive title text in DESCRIPTION cell for each row.
             - Do not put product title in CODE column.

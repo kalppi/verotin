@@ -1,0 +1,14 @@
+{"id":"lab-001","description":"Tuntityö","context":"UNKNOWN","expectedCategory":"Kotitalousvähennys","expectedDecision":"candidate","expectedConfidenceBand":"low","reasonTag":"generic_labour_needs_context"}
+{"id":"lab-002","description":"TUNTITYÖ","context":"UNKNOWN","expectedCategory":"Kotitalousvähennys","expectedDecision":"candidate","expectedConfidenceBand":"low","reasonTag":"generic_labour_needs_context"}
+{"id":"lab-003","description":"Tuntityö 7 h","context":"UNKNOWN","expectedCategory":"Kotitalousvähennys","expectedDecision":"candidate","expectedConfidenceBand":"low","reasonTag":"generic_labour_needs_context"}
+{"id":"elec-001","description":"Sähkötyö, sisältää turvakytkin asennus","context":"UNKNOWN","expectedCategory":"Kotitalousvähennys","expectedDecision":"candidate","expectedConfidenceBand":"high","reasonTag":"explicit_electrical_work"}
+{"id":"elec-002","description":"Kaapelin vetotyö","context":"UNKNOWN","expectedCategory":"Kotitalousvähennys","expectedDecision":"candidate","expectedConfidenceBand":"medium","reasonTag":"electrical_cable_work"}
+{"id":"mat-001","description":"Sähkökaapeli DRAKA MMJ 3x1,5 N R100 Eca 100m","context":"UNKNOWN","expectedCategory":"REJECTED","expectedDecision":"rejected","expectedConfidenceBand":"high","reasonTag":"material_not_labour"}
+{"id":"mat-002","description":"Kytkin JUSSI UKJ 2X VAL","context":"UNKNOWN","expectedCategory":"REJECTED","expectedDecision":"rejected","expectedConfidenceBand":"high","reasonTag":"electrical_component_not_labour"}
+{"id":"logistic-001","description":"Huoltoauto","context":"UNKNOWN","expectedCategory":"REJECTED","expectedDecision":"rejected","expectedConfidenceBand":"high","reasonTag":"anti_labour_keyword"}
+{"id":"logistic-002","description":"Huoltoajoneuvo","context":"UNKNOWN","expectedCategory":"REJECTED","expectedDecision":"rejected","expectedConfidenceBand":"high","reasonTag":"anti_labour_keyword"}
+{"id":"service-001","description":"Installaatiotyö","context":"UNKNOWN","expectedCategory":"Kotitalousvähennys","expectedDecision":"candidate","expectedConfidenceBand":"high","reasonTag":"installation_labour"}
+{"id":"service-002","description":"Perusasennus","context":"UNKNOWN","expectedCategory":"Kotitalousvähennys","expectedDecision":"candidate","expectedConfidenceBand":"high","reasonTag":"installation_labour"}
+{"id":"fee-001","description":"Laskutuslisä","context":"UNKNOWN","expectedCategory":"REJECTED","expectedDecision":"rejected","expectedConfidenceBand":"high","reasonTag":"non_deductible_fee"}
+{"id":"fee-002","description":"Pientarvikelisä","context":"UNKNOWN","expectedCategory":"REJECTED","expectedDecision":"rejected","expectedConfidenceBand":"high","reasonTag":"non_deductible_fee"}
+

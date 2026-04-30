@@ -1,0 +1,14 @@
+ID,Description,Expected Decision,Predicted Decision,Decision Match,Expected Category,Predicted Category,Category Match,Confidence,Reason
+"lab-001","Tuntityö",candidate,rejected,false,Kotitalousvähennys,NONE,false,low,generic_labour_needs_context
+"lab-002","TUNTITYÖ",candidate,rejected,false,Kotitalousvähennys,NONE,false,low,generic_labour_needs_context
+"lab-003","Tuntityö 7 h",candidate,rejected,false,Kotitalousvähennys,NONE,false,low,generic_labour_needs_context
+"elec-001","Sähkötyö, sisältää turvakytkin asennus",candidate,rejected,false,Kotitalousvähennys,NONE,false,high,explicit_electrical_work
+"elec-002","Kaapelin vetotyö",candidate,rejected,false,Kotitalousvähennys,NONE,false,medium,electrical_cable_work
+"mat-001","Sähkökaapeli DRAKA MMJ 3x1,5 N R100 Eca 100m",rejected,rejected,true,REJECTED,NONE,true,high,material_not_labour
+"mat-002","Kytkin JUSSI UKJ 2X VAL",rejected,rejected,true,REJECTED,NONE,true,high,electrical_component_not_labour
+"logistic-001","Huoltoauto",rejected,rejected,true,REJECTED,NONE,true,high,anti_labour_keyword
+"logistic-002","Huoltoajoneuvo",rejected,rejected,true,REJECTED,NONE,true,high,anti_labour_keyword
+"service-001","Installaatiotyö",candidate,rejected,false,Kotitalousvähennys,NONE,false,high,installation_labour
+"service-002","Perusasennus",candidate,rejected,false,Kotitalousvähennys,NONE,false,high,installation_labour
+"fee-001","Laskutuslisä",rejected,rejected,true,REJECTED,NONE,true,high,non_deductible_fee
+"fee-002","Pientarvikelisä",rejected,rejected,true,REJECTED,NONE,true,high,non_deductible_fee
