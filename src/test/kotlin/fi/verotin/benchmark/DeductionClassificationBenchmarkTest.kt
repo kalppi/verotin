@@ -2,213 +2,254 @@ package fi.verotin.benchmark
 
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties
 import com.fasterxml.jackson.module.kotlin.jacksonObjectMapper
-import fi.verotin.service.DeductionClassificationService
-import fi.verotin.domain.InvoiceExtraction
-import fi.verotin.domain.LineItem
+import fi.verotin.ollama.OllamaClient
+import fi.verotin.ollama.OllamaMessage
+import org.junit.jupiter.api.Assertions.assertFalse
 import org.junit.jupiter.api.DisplayName
 import org.junit.jupiter.api.Test
-import org.springframework.beans.factory.annotation.Autowired
-import org.springframework.boot.test.context.SpringBootTest
-import org.springframework.core.io.ResourceLoader
-import org.springframework.test.context.ActiveProfiles
-import org.springframework.test.context.DynamicPropertyRegistry
-import org.springframework.test.context.DynamicPropertySource
-import org.testcontainers.containers.PostgreSQLContainer
-import org.testcontainers.junit.jupiter.Container
-import org.testcontainers.junit.jupiter.Testcontainers
 import java.io.File
+import org.springframework.web.reactive.function.client.WebClient
 
 /**
- * Benchmark test for comparing deduction classification quality.
- * Tests how well the classification service identifies tax deduction candidates.
+ * Benchmark test that runs a grid search over all prompt/model combinations.
  *
- * Dataset format (JSONL): each line is a test case with ground truth classification.
- * See `benchmark-deductions.jsonl` for examples.
+ * Loads:
+ * - Prompts from `src/test/resources/prompts/` (one .txt file per prompt)
+ * - Models from the modelsToTest list below
+ * - Test cases from `src/test/resources/benchmark-deductions.jsonl`
+ *
+ * Runs all combinations and reports the best-performing prompt+model pair.
  */
-@SpringBootTest
-@Testcontainers
-@ActiveProfiles("test")
-@DisplayName("Deduction Classification Benchmark")
+@DisplayName("Deduction Classification LLM Benchmark (Grid Search)")
 class DeductionClassificationBenchmarkTest {
 
     companion object {
-        @Container
-        @JvmStatic
-        private val postgres = PostgreSQLContainer("pgvector/pgvector:pg16")
-            .withDatabaseName("verotin_test")
-            .withUsername("verotin")
-            .withPassword("verotin")
-
-        @DynamicPropertySource
-        @JvmStatic
-        fun configureProperties(registry: DynamicPropertyRegistry) {
-            registry.add("spring.datasource.url") { postgres.jdbcUrl }
-            registry.add("spring.datasource.username") { postgres.username }
-            registry.add("spring.datasource.password") { postgres.password }
-        }
-
         private operator fun String.times(count: Int) = this.repeat(count)
     }
 
-    @Autowired
-    private lateinit var resourceLoader: ResourceLoader
-
-    @Autowired
-    private lateinit var classificationService: DeductionClassificationService
+    private val objectMapper = jacksonObjectMapper()
+    private val ollamaClient = OllamaClient(
+        WebClient.builder()
+            .baseUrl(System.getenv("OLLAMA_BASE_URL") ?: "http://localhost:11434")
+            .build()
+    )
 
     @Test
-    @DisplayName("Benchmark: Classify line items and score against ground truth")
+    @DisplayName("Benchmark: Grid search over prompts and models")
     fun runClassificationBenchmark() {
+        // Configuration: which models to test
+        val modelsToTest = listOf("mistral", "llama2", "llama3", "neural-chat")
+
+        // Load all prompts from directory
+        val prompts = loadPromptsFromDirectory()
+        if (prompts.isEmpty()) {
+            println("⚠️  No prompts found in src/test/resources/prompts/")
+            return
+        }
+
         val dataset = loadClassificationDataset()
         if (dataset.isEmpty()) {
             println("⚠️  No classification benchmark dataset found at classpath:benchmark-deductions.jsonl")
             return
         }
 
-        println("\n📊 Deduction Classification Benchmark")
+        println("\n📊 Deduction Classification LLM Benchmark (Grid Search)")
         println("=" * 80)
+        println("Models to test: $modelsToTest")
+        println("Prompts to test: ${prompts.keys}")
         println("Dataset: ${dataset.size} test cases")
+        println("Total combinations: ${modelsToTest.size} × ${prompts.size} = ${modelsToTest.size * prompts.size}")
 
-        val results = mutableListOf<ClassificationBenchmarkResult>()
+        assertFalse(modelsToTest.isEmpty(), "modelsToTest must not be empty")
+        val allResults = mutableListOf<GridSearchResult>()
 
-        dataset.forEachIndexed { idx, testCase ->
-            println("\n[${idx + 1}/${dataset.size}] Testing: ${testCase.id} - ${testCase.description.take(50)}...")
+        // Grid search: for each model, for each prompt
+        var combinationIdx = 1
+        val totalCombinations = modelsToTest.size * prompts.size
 
-            // Create a minimal invoice with a single line item
-            val lineItem = LineItem(
-                description = testCase.description,
-                quantity = null,
-                unitPrice = null,
-                total = null,
-            )
-            val invoice = InvoiceExtraction(
-                id = java.util.UUID.randomUUID(),
-                sourceDocumentId = java.util.UUID.randomUUID(),
-                vendorName = null,
-                invoiceNumber = null,
-                invoiceDate = null,
-                paymentDate = null,
-                totalAmount = null,
-                currency = null,
-                vatAmount = null,
-                laborAmount = null,
-                materialAmount = null,
-                lineItems = listOf(lineItem),
-                rawLlmResponse = "",
-                extractedAt = java.time.Instant.now(),
-            )
+        modelsToTest.forEach { model ->
+            prompts.forEach { (promptName, promptText) ->
+                println("\n" + "-" * 80)
+                println("[$combinationIdx/$totalCombinations] Testing: $model + $promptName")
+                println("-" * 80)
 
-            // Classify
-            val deductions = try {
-                classificationService.classify(invoice)
-            } catch (ex: Exception) {
-                println("  ❌ Classification failed: ${ex.message}")
-                emptyList()
+                val testResults = mutableListOf<ClassificationBenchmarkResult>()
+
+                dataset.forEachIndexed { idx, testCase ->
+                    if (idx % 5 == 0) {
+                        println("  [$idx/${dataset.size}] Processing...")
+                    }
+
+                    // Call LLM
+                    val predictedCategory = try {
+                        val userPrompt = buildUserPrompt(testCase)
+                        val response = ollamaClient.chat(
+                            model = model,
+                            messages = listOf(
+                                OllamaMessage(role = "system", content = promptText),
+                                OllamaMessage(role = "user", content = userPrompt),
+                            ),
+                            jsonFormat = true,
+                        )
+                        val parsed = objectMapper.readValue(response, ClassificationLlmResponse::class.java)
+                        parsed.category ?: "NONE"
+                    } catch (ex: Exception) {
+                        "ERROR"
+                    }
+
+                    // Score
+                    val categoryMatch = predictedCategory == testCase.expectedCategory
+                    val score = ClassificationBenchmarkResult(
+                        testCaseId = testCase.id,
+                        description = testCase.description.take(60),
+                        expectedCategory = testCase.expectedCategory,
+                        predictedCategory = predictedCategory,
+                        categoryMatch = categoryMatch,
+                        confidenceBand = testCase.expectedConfidenceBand,
+                        reasonTag = testCase.reasonTag,
+                        modelUsed = model,
+                    )
+                    testResults.add(score)
+                }
+
+                // Calculate accuracy for this combination
+                val accuracy = testResults.count { it.categoryMatch }.toDouble() / testResults.size * 100
+                val gridResult = GridSearchResult(
+                    model = model,
+                    promptName = promptName,
+                    accuracy = accuracy,
+                    testsPassed = testResults.count { it.categoryMatch },
+                    testsTotal = testResults.size,
+                    results = testResults,
+                )
+                allResults.add(gridResult)
+
+                println("  ✓ Accuracy: ${String.format("%.1f%%", accuracy)} (${gridResult.testsPassed}/${gridResult.testsTotal})")
+                combinationIdx++
             }
-
-            // Score: did we find a candidate when expected?
-            val expectedCandidate = testCase.expectedDecision == "candidate"
-            val foundCandidate = deductions.isNotEmpty()
-            val decisionMatch = (expectedCandidate == foundCandidate)
-
-            // Score: category match (if we found a candidate)
-            val categoryMatch = if (foundCandidate && deductions.isNotEmpty()) {
-                val predictedCategory = deductions[0].category
-                predictedCategory == testCase.expectedCategory
-            } else {
-                !expectedCandidate  // Correct if we don't need a candidate and didn't find one
-            }
-
-            val score = ClassificationBenchmarkResult(
-                testCaseId = testCase.id,
-                description = testCase.description.take(60),
-                expectedDecision = testCase.expectedDecision,
-                expectedCategory = testCase.expectedCategory,
-                predictedDecision = if (foundCandidate) "candidate" else "rejected",
-                predictedCategory = deductions.firstOrNull()?.category ?: "NONE",
-                decisionMatch = decisionMatch,
-                categoryMatch = categoryMatch,
-                confidenceBand = testCase.expectedConfidenceBand,
-                reasonTag = testCase.reasonTag,
-            )
-            results.add(score)
-
-            val status = if (score.decisionMatch && score.categoryMatch) "✓" else "✗"
-            println("  $status Decision: ${score.predictedDecision} (expected: ${score.expectedDecision})")
-            println("     Category: ${score.predictedCategory} (expected: ${score.expectedCategory})")
         }
 
-        // Print summary
-        printClassificationSummary(results)
+        // Find best combination
+        val bestCombination = allResults.maxByOrNull { it.accuracy }
+        if (bestCombination != null) {
+            println("\n" + "=" * 80)
+            println("🏆 BEST COMBINATION")
+            println("=" * 80)
+            println("Model:  ${bestCombination.model}")
+            println("Prompt: ${bestCombination.promptName}")
+            println("Accuracy: ${String.format("%.1f%%", bestCombination.accuracy)}")
+            println("Passed: ${bestCombination.testsPassed}/${bestCombination.testsTotal}")
+        }
 
-        // Export CSV report
-        exportClassificationCsvReport(results)
+        // Print detailed summary and export
+        exportGridSearchResults(allResults)
     }
+
+    private fun buildUserPrompt(testCase: ClassificationTestCase): String = """
+        Classify the following invoice line item into a Finnish tax deduction category.
+        
+        Line Item Description: "${testCase.description}"
+        Context: ${testCase.context ?: "UNKNOWN"}
+        
+        Respond with ONLY a JSON object containing:
+        {
+          "category": "<category name or null>",
+          "confidence": <0.0 to 1.0>,
+          "reasoning": "<brief explanation>"
+        }
+    """.trimIndent()
 
     private fun printClassificationSummary(results: List<ClassificationBenchmarkResult>) {
         if (results.isEmpty()) return
 
-        val decisionAccuracy = results.count { it.decisionMatch }.toDouble() / results.size * 100
         val categoryAccuracy = results.count { it.categoryMatch }.toDouble() / results.size * 100
 
-        val byConfidence = results.groupBy { it.confidenceBand }
         val byReason = results.groupBy { it.reasonTag }
+        val byConfidence = results.groupBy { it.confidenceBand }
 
         println("\n" + "=" * 80)
         println("📈 Summary")
         println("=" * 80)
-        println("Decision Accuracy (candidate vs rejected): ${String.format("%.1f%%", decisionAccuracy)}")
-        println("Category Accuracy (when candidate):       ${String.format("%.1f%%", categoryAccuracy)}")
-        println("Total Test Cases:                         ${results.size}")
-
-        println("\n📊 By Confidence Band:")
-        byConfidence.forEach { (band, cases) ->
-            val acc = cases.count { it.decisionMatch }.toDouble() / cases.size * 100
-            println("  $band: ${String.format("%.1f%%", acc)} (${cases.size} cases)")
-        }
+        println("Category Accuracy:     ${String.format("%.1f%%", categoryAccuracy)}")
+        println("Total Test Cases:      ${results.size}")
 
         println("\n🏷️  By Reason Tag:")
         byReason.forEach { (tag, cases) ->
-            val acc = cases.count { it.decisionMatch }.toDouble() / cases.size * 100
+            val acc = cases.count { it.categoryMatch }.toDouble() / cases.size * 100
             println("  $tag: ${String.format("%.1f%%", acc)} (${cases.size} cases)")
+        }
+
+        println("\n📊 By Confidence Band:")
+        byConfidence.forEach { (band, cases) ->
+            val acc = cases.count { it.categoryMatch }.toDouble() / cases.size * 100
+            println("  $band: ${String.format("%.1f%%", acc)} (${cases.size} cases)")
         }
     }
 
-    private fun exportClassificationCsvReport(results: List<ClassificationBenchmarkResult>) {
-        val reportFile = File("benchmark-classifications.csv")
-        reportFile.writeText(
-            "ID,Description,Expected Decision,Predicted Decision,Decision Match," +
-            "Expected Category,Predicted Category,Category Match,Confidence,Reason\n"
-        )
-        results.forEach { r ->
-            reportFile.appendText(
-                "\"${r.testCaseId}\"," +
-                "\"${r.description}\"," +
-                "${r.expectedDecision}," +
-                "${r.predictedDecision}," +
-                "${r.decisionMatch}," +
-                "${r.expectedCategory}," +
-                "${r.predictedCategory}," +
-                "${r.categoryMatch}," +
-                "${r.confidenceBand}," +
-                "${r.reasonTag}\n"
+    private fun exportGridSearchResults(allResults: List<GridSearchResult>) {
+        // Summary CSV: one row per model+prompt combination
+        val summaryFile = File("benchmark-grid-search-summary.csv")
+        summaryFile.writeText("Model,Prompt,Accuracy %,Passed,Total\n")
+        allResults.sortedByDescending { it.accuracy }.forEach { r ->
+            summaryFile.appendText(
+                "${r.model},${r.promptName},${String.format("%.1f", r.accuracy)}," +
+                "${r.testsPassed},${r.testsTotal}\n"
             )
         }
-        println("\n💾 Report exported: benchmark-classifications.csv")
+        println("\n💾 Summary exported: benchmark-grid-search-summary.csv")
+
+        // Detailed CSV: all test results
+        val detailedFile = File("benchmark-grid-search-detailed.csv")
+        detailedFile.writeText(
+            "Model,Prompt,ID,Description,Expected Category,Predicted Category,Match,Confidence,Reason\n"
+        )
+        allResults.forEach { gridResult ->
+            gridResult.results.forEach { r ->
+                detailedFile.appendText(
+                    "${gridResult.model},${gridResult.promptName}," +
+                    "\"${r.testCaseId}\",\"${r.description}\"," +
+                    "${r.expectedCategory},${r.predictedCategory}," +
+                    "${r.categoryMatch},${r.confidenceBand},${r.reasonTag}\n"
+                )
+            }
+        }
+        println("💾 Detailed exported: benchmark-grid-search-detailed.csv")
+    }
+
+    private fun loadPromptsFromDirectory(): Map<String, String> {
+        return try {
+            val folder = File("src/test/resources/prompts")
+            if (!folder.exists() || !folder.isDirectory) {
+                println("Prompts directory not found: src/test/resources/prompts/")
+                emptyMap()
+            } else {
+                val prompts = mutableMapOf<String, String>()
+                folder.listFiles { file ->
+                    file.isFile && file.name.endsWith(".txt")
+                }?.forEach { file ->
+                    val promptName = file.nameWithoutExtension
+                    val promptText = file.readText()
+                    prompts[promptName] = promptText
+                }
+                prompts
+            }
+        } catch (ex: Exception) {
+            println("Failed to load prompts: ${ex.message}")
+            emptyMap()
+        }
     }
 
     private fun loadClassificationDataset(): List<ClassificationTestCase> {
         return try {
-            val resource = resourceLoader.getResource("classpath:benchmark-deductions.jsonl")
-            if (!resource.exists()) {
+            val file = File("src/test/resources/benchmark-deductions.jsonl")
+            if (!file.exists()) {
                 println("Dataset file not found: benchmark-deductions.jsonl")
                 emptyList()
             } else {
-                val mapper = jacksonObjectMapper()
-                resource.inputStream.bufferedReader().useLines { lines ->
+                file.bufferedReader().useLines { lines ->
                     lines
                         .filter { it.isNotBlank() }
-                        .map { mapper.readValue(it, ClassificationTestCase::class.java) }
+                        .map { objectMapper.readValue(it, ClassificationTestCase::class.java) }
                         .toList()
                 }
             }
@@ -225,22 +266,35 @@ data class ClassificationTestCase(
     val description: String = "",
     val context: String? = null,
     val expectedCategory: String = "",
-    val expectedDecision: String = "candidate",  // "candidate" or "rejected"
     val expectedConfidenceBand: String = "low",  // "low", "medium", "high"
     val reasonTag: String = "",
+)
+
+@JsonIgnoreProperties(ignoreUnknown = true)
+data class ClassificationLlmResponse(
+    val category: String? = null,
+    val confidence: Double? = null,
+    val reasoning: String? = null,
 )
 
 data class ClassificationBenchmarkResult(
     val testCaseId: String,
     val description: String,
-    val expectedDecision: String,
     val expectedCategory: String,
-    val predictedDecision: String,
     val predictedCategory: String,
-    val decisionMatch: Boolean,
     val categoryMatch: Boolean,
     val confidenceBand: String,
     val reasonTag: String,
+    val modelUsed: String = "",
+)
+
+data class GridSearchResult(
+    val model: String,
+    val promptName: String,
+    val accuracy: Double,
+    val testsPassed: Int,
+    val testsTotal: Int,
+    val results: List<ClassificationBenchmarkResult>,
 )
 
 

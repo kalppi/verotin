@@ -1,0 +1,118 @@
+Model,Prompt,ID,Description,Expected Category,Predicted Category,Match,Confidence,Reason
+mistral,expert,"lab-001","Tuntityö",Kotitalousvähennys,ERROR,false,low,generic_labour_needs_context
+mistral,expert,"lab-002","TUNTITYÖ",Kotitalousvähennys,ERROR,false,low,generic_labour_needs_context
+mistral,expert,"lab-003","Tuntityö 7 h",Kotitalousvähennys,ERROR,false,low,generic_labour_needs_context
+mistral,expert,"elec-001","Sähkötyö, sisältää turvakytkin asennus",Kotitalousvähennys,ERROR,false,high,explicit_electrical_work
+mistral,expert,"elec-002","Kaapelin vetotyö",Kotitalousvähennys,ERROR,false,medium,electrical_cable_work
+mistral,expert,"mat-001","Sähkökaapeli DRAKA MMJ 3x1,5 N R100 Eca 100m",REJECTED,ERROR,false,high,material_not_labour
+mistral,expert,"mat-002","Kytkin JUSSI UKJ 2X VAL",REJECTED,ERROR,false,high,electrical_component_not_labour
+mistral,expert,"logistic-001","Huoltoauto",REJECTED,ERROR,false,high,anti_labour_keyword
+mistral,expert,"logistic-002","Huoltoajoneuvo",REJECTED,ERROR,false,high,anti_labour_keyword
+mistral,expert,"service-001","Installaatiotyö",Kotitalousvähennys,ERROR,false,high,installation_labour
+mistral,expert,"service-002","Perusasennus",Kotitalousvähennys,ERROR,false,high,installation_labour
+mistral,expert,"fee-001","Laskutuslisä",REJECTED,ERROR,false,high,non_deductible_fee
+mistral,expert,"fee-002","Pientarvikelisä",REJECTED,ERROR,false,high,non_deductible_fee
+mistral,basic,"lab-001","Tuntityö",Kotitalousvähennys,ERROR,false,low,generic_labour_needs_context
+mistral,basic,"lab-002","TUNTITYÖ",Kotitalousvähennys,ERROR,false,low,generic_labour_needs_context
+mistral,basic,"lab-003","Tuntityö 7 h",Kotitalousvähennys,ERROR,false,low,generic_labour_needs_context
+mistral,basic,"elec-001","Sähkötyö, sisältää turvakytkin asennus",Kotitalousvähennys,ERROR,false,high,explicit_electrical_work
+mistral,basic,"elec-002","Kaapelin vetotyö",Kotitalousvähennys,ERROR,false,medium,electrical_cable_work
+mistral,basic,"mat-001","Sähkökaapeli DRAKA MMJ 3x1,5 N R100 Eca 100m",REJECTED,ERROR,false,high,material_not_labour
+mistral,basic,"mat-002","Kytkin JUSSI UKJ 2X VAL",REJECTED,ERROR,false,high,electrical_component_not_labour
+mistral,basic,"logistic-001","Huoltoauto",REJECTED,ERROR,false,high,anti_labour_keyword
+mistral,basic,"logistic-002","Huoltoajoneuvo",REJECTED,ERROR,false,high,anti_labour_keyword
+mistral,basic,"service-001","Installaatiotyö",Kotitalousvähennys,ERROR,false,high,installation_labour
+mistral,basic,"service-002","Perusasennus",Kotitalousvähennys,ERROR,false,high,installation_labour
+mistral,basic,"fee-001","Laskutuslisä",REJECTED,ERROR,false,high,non_deductible_fee
+mistral,basic,"fee-002","Pientarvikelisä",REJECTED,ERROR,false,high,non_deductible_fee
+mistral,minimal,"lab-001","Tuntityö",Kotitalousvähennys,ERROR,false,low,generic_labour_needs_context
+mistral,minimal,"lab-002","TUNTITYÖ",Kotitalousvähennys,ERROR,false,low,generic_labour_needs_context
+mistral,minimal,"lab-003","Tuntityö 7 h",Kotitalousvähennys,ERROR,false,low,generic_labour_needs_context
+mistral,minimal,"elec-001","Sähkötyö, sisältää turvakytkin asennus",Kotitalousvähennys,ERROR,false,high,explicit_electrical_work
+mistral,minimal,"elec-002","Kaapelin vetotyö",Kotitalousvähennys,ERROR,false,medium,electrical_cable_work
+mistral,minimal,"mat-001","Sähkökaapeli DRAKA MMJ 3x1,5 N R100 Eca 100m",REJECTED,ERROR,false,high,material_not_labour
+mistral,minimal,"mat-002","Kytkin JUSSI UKJ 2X VAL",REJECTED,ERROR,false,high,electrical_component_not_labour
+mistral,minimal,"logistic-001","Huoltoauto",REJECTED,ERROR,false,high,anti_labour_keyword
+mistral,minimal,"logistic-002","Huoltoajoneuvo",REJECTED,ERROR,false,high,anti_labour_keyword
+mistral,minimal,"service-001","Installaatiotyö",Kotitalousvähennys,ERROR,false,high,installation_labour
+mistral,minimal,"service-002","Perusasennus",Kotitalousvähennys,ERROR,false,high,installation_labour
+mistral,minimal,"fee-001","Laskutuslisä",REJECTED,ERROR,false,high,non_deductible_fee
+mistral,minimal,"fee-002","Pientarvikelisä",REJECTED,ERROR,false,high,non_deductible_fee
+llama2,expert,"lab-001","Tuntityö",Kotitalousvähennys,ERROR,false,low,generic_labour_needs_context
+llama2,expert,"lab-002","TUNTITYÖ",Kotitalousvähennys,ERROR,false,low,generic_labour_needs_context
+llama2,expert,"lab-003","Tuntityö 7 h",Kotitalousvähennys,ERROR,false,low,generic_labour_needs_context
+llama2,expert,"elec-001","Sähkötyö, sisältää turvakytkin asennus",Kotitalousvähennys,ERROR,false,high,explicit_electrical_work
+llama2,expert,"elec-002","Kaapelin vetotyö",Kotitalousvähennys,ERROR,false,medium,electrical_cable_work
+llama2,expert,"mat-001","Sähkökaapeli DRAKA MMJ 3x1,5 N R100 Eca 100m",REJECTED,ERROR,false,high,material_not_labour
+llama2,expert,"mat-002","Kytkin JUSSI UKJ 2X VAL",REJECTED,ERROR,false,high,electrical_component_not_labour
+llama2,expert,"logistic-001","Huoltoauto",REJECTED,ERROR,false,high,anti_labour_keyword
+llama2,expert,"logistic-002","Huoltoajoneuvo",REJECTED,ERROR,false,high,anti_labour_keyword
+llama2,expert,"service-001","Installaatiotyö",Kotitalousvähennys,ERROR,false,high,installation_labour
+llama2,expert,"service-002","Perusasennus",Kotitalousvähennys,ERROR,false,high,installation_labour
+llama2,expert,"fee-001","Laskutuslisä",REJECTED,ERROR,false,high,non_deductible_fee
+llama2,expert,"fee-002","Pientarvikelisä",REJECTED,ERROR,false,high,non_deductible_fee
+llama2,basic,"lab-001","Tuntityö",Kotitalousvähennys,ERROR,false,low,generic_labour_needs_context
+llama2,basic,"lab-002","TUNTITYÖ",Kotitalousvähennys,ERROR,false,low,generic_labour_needs_context
+llama2,basic,"lab-003","Tuntityö 7 h",Kotitalousvähennys,ERROR,false,low,generic_labour_needs_context
+llama2,basic,"elec-001","Sähkötyö, sisältää turvakytkin asennus",Kotitalousvähennys,ERROR,false,high,explicit_electrical_work
+llama2,basic,"elec-002","Kaapelin vetotyö",Kotitalousvähennys,ERROR,false,medium,electrical_cable_work
+llama2,basic,"mat-001","Sähkökaapeli DRAKA MMJ 3x1,5 N R100 Eca 100m",REJECTED,ERROR,false,high,material_not_labour
+llama2,basic,"mat-002","Kytkin JUSSI UKJ 2X VAL",REJECTED,ERROR,false,high,electrical_component_not_labour
+llama2,basic,"logistic-001","Huoltoauto",REJECTED,ERROR,false,high,anti_labour_keyword
+llama2,basic,"logistic-002","Huoltoajoneuvo",REJECTED,ERROR,false,high,anti_labour_keyword
+llama2,basic,"service-001","Installaatiotyö",Kotitalousvähennys,ERROR,false,high,installation_labour
+llama2,basic,"service-002","Perusasennus",Kotitalousvähennys,ERROR,false,high,installation_labour
+llama2,basic,"fee-001","Laskutuslisä",REJECTED,ERROR,false,high,non_deductible_fee
+llama2,basic,"fee-002","Pientarvikelisä",REJECTED,ERROR,false,high,non_deductible_fee
+llama2,minimal,"lab-001","Tuntityö",Kotitalousvähennys,ERROR,false,low,generic_labour_needs_context
+llama2,minimal,"lab-002","TUNTITYÖ",Kotitalousvähennys,ERROR,false,low,generic_labour_needs_context
+llama2,minimal,"lab-003","Tuntityö 7 h",Kotitalousvähennys,ERROR,false,low,generic_labour_needs_context
+llama2,minimal,"elec-001","Sähkötyö, sisältää turvakytkin asennus",Kotitalousvähennys,ERROR,false,high,explicit_electrical_work
+llama2,minimal,"elec-002","Kaapelin vetotyö",Kotitalousvähennys,ERROR,false,medium,electrical_cable_work
+llama2,minimal,"mat-001","Sähkökaapeli DRAKA MMJ 3x1,5 N R100 Eca 100m",REJECTED,ERROR,false,high,material_not_labour
+llama2,minimal,"mat-002","Kytkin JUSSI UKJ 2X VAL",REJECTED,ERROR,false,high,electrical_component_not_labour
+llama2,minimal,"logistic-001","Huoltoauto",REJECTED,ERROR,false,high,anti_labour_keyword
+llama2,minimal,"logistic-002","Huoltoajoneuvo",REJECTED,ERROR,false,high,anti_labour_keyword
+llama2,minimal,"service-001","Installaatiotyö",Kotitalousvähennys,ERROR,false,high,installation_labour
+llama2,minimal,"service-002","Perusasennus",Kotitalousvähennys,ERROR,false,high,installation_labour
+llama2,minimal,"fee-001","Laskutuslisä",REJECTED,ERROR,false,high,non_deductible_fee
+llama2,minimal,"fee-002","Pientarvikelisä",REJECTED,ERROR,false,high,non_deductible_fee
+neural-chat,expert,"lab-001","Tuntityö",Kotitalousvähennys,ERROR,false,low,generic_labour_needs_context
+neural-chat,expert,"lab-002","TUNTITYÖ",Kotitalousvähennys,ERROR,false,low,generic_labour_needs_context
+neural-chat,expert,"lab-003","Tuntityö 7 h",Kotitalousvähennys,ERROR,false,low,generic_labour_needs_context
+neural-chat,expert,"elec-001","Sähkötyö, sisältää turvakytkin asennus",Kotitalousvähennys,ERROR,false,high,explicit_electrical_work
+neural-chat,expert,"elec-002","Kaapelin vetotyö",Kotitalousvähennys,ERROR,false,medium,electrical_cable_work
+neural-chat,expert,"mat-001","Sähkökaapeli DRAKA MMJ 3x1,5 N R100 Eca 100m",REJECTED,ERROR,false,high,material_not_labour
+neural-chat,expert,"mat-002","Kytkin JUSSI UKJ 2X VAL",REJECTED,ERROR,false,high,electrical_component_not_labour
+neural-chat,expert,"logistic-001","Huoltoauto",REJECTED,ERROR,false,high,anti_labour_keyword
+neural-chat,expert,"logistic-002","Huoltoajoneuvo",REJECTED,ERROR,false,high,anti_labour_keyword
+neural-chat,expert,"service-001","Installaatiotyö",Kotitalousvähennys,ERROR,false,high,installation_labour
+neural-chat,expert,"service-002","Perusasennus",Kotitalousvähennys,ERROR,false,high,installation_labour
+neural-chat,expert,"fee-001","Laskutuslisä",REJECTED,ERROR,false,high,non_deductible_fee
+neural-chat,expert,"fee-002","Pientarvikelisä",REJECTED,ERROR,false,high,non_deductible_fee
+neural-chat,basic,"lab-001","Tuntityö",Kotitalousvähennys,ERROR,false,low,generic_labour_needs_context
+neural-chat,basic,"lab-002","TUNTITYÖ",Kotitalousvähennys,ERROR,false,low,generic_labour_needs_context
+neural-chat,basic,"lab-003","Tuntityö 7 h",Kotitalousvähennys,ERROR,false,low,generic_labour_needs_context
+neural-chat,basic,"elec-001","Sähkötyö, sisältää turvakytkin asennus",Kotitalousvähennys,ERROR,false,high,explicit_electrical_work
+neural-chat,basic,"elec-002","Kaapelin vetotyö",Kotitalousvähennys,ERROR,false,medium,electrical_cable_work
+neural-chat,basic,"mat-001","Sähkökaapeli DRAKA MMJ 3x1,5 N R100 Eca 100m",REJECTED,ERROR,false,high,material_not_labour
+neural-chat,basic,"mat-002","Kytkin JUSSI UKJ 2X VAL",REJECTED,ERROR,false,high,electrical_component_not_labour
+neural-chat,basic,"logistic-001","Huoltoauto",REJECTED,ERROR,false,high,anti_labour_keyword
+neural-chat,basic,"logistic-002","Huoltoajoneuvo",REJECTED,ERROR,false,high,anti_labour_keyword
+neural-chat,basic,"service-001","Installaatiotyö",Kotitalousvähennys,ERROR,false,high,installation_labour
+neural-chat,basic,"service-002","Perusasennus",Kotitalousvähennys,ERROR,false,high,installation_labour
+neural-chat,basic,"fee-001","Laskutuslisä",REJECTED,ERROR,false,high,non_deductible_fee
+neural-chat,basic,"fee-002","Pientarvikelisä",REJECTED,ERROR,false,high,non_deductible_fee
+neural-chat,minimal,"lab-001","Tuntityö",Kotitalousvähennys,ERROR,false,low,generic_labour_needs_context
+neural-chat,minimal,"lab-002","TUNTITYÖ",Kotitalousvähennys,ERROR,false,low,generic_labour_needs_context
+neural-chat,minimal,"lab-003","Tuntityö 7 h",Kotitalousvähennys,ERROR,false,low,generic_labour_needs_context
+neural-chat,minimal,"elec-001","Sähkötyö, sisältää turvakytkin asennus",Kotitalousvähennys,ERROR,false,high,explicit_electrical_work
+neural-chat,minimal,"elec-002","Kaapelin vetotyö",Kotitalousvähennys,ERROR,false,medium,electrical_cable_work
+neural-chat,minimal,"mat-001","Sähkökaapeli DRAKA MMJ 3x1,5 N R100 Eca 100m",REJECTED,ERROR,false,high,material_not_labour
+neural-chat,minimal,"mat-002","Kytkin JUSSI UKJ 2X VAL",REJECTED,ERROR,false,high,electrical_component_not_labour
+neural-chat,minimal,"logistic-001","Huoltoauto",REJECTED,ERROR,false,high,anti_labour_keyword
+neural-chat,minimal,"logistic-002","Huoltoajoneuvo",REJECTED,ERROR,false,high,anti_labour_keyword
+neural-chat,minimal,"service-001","Installaatiotyö",Kotitalousvähennys,ERROR,false,high,installation_labour
+neural-chat,minimal,"service-002","Perusasennus",Kotitalousvähennys,ERROR,false,high,installation_labour
+neural-chat,minimal,"fee-001","Laskutuslisä",REJECTED,ERROR,false,high,non_deductible_fee
+neural-chat,minimal,"fee-002","Pientarvikelisä",REJECTED,ERROR,false,high,non_deductible_fee

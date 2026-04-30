@@ -1,0 +1,2 @@
+Classify as Kotitalousvähennys or REJECTED.
+Return JSON: {"category": "...", "confidence": 0.0-1.0, "reasoning": "..."}

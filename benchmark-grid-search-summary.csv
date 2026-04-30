@@ -1,0 +1,10 @@
+Model,Prompt,Accuracy %,Passed,Total
+mistral,expert,0.0,0,13
+mistral,basic,0.0,0,13
+mistral,minimal,0.0,0,13
+llama2,expert,0.0,0,13
+llama2,basic,0.0,0,13
+llama2,minimal,0.0,0,13
+neural-chat,expert,0.0,0,13
+neural-chat,basic,0.0,0,13
+neural-chat,minimal,0.0,0,13
