@@ -1,16 +1,8 @@
-# Verotin: Local-First RAG System for Finnish Tax Deduction Candidates
+# Verotin: Local-First RAG System for Finnish Tax Deduction Candidates.
+
+Largely vibe coded.
 
 A production-minded MVP Kotlin backend for scanning invoice/receipt emails and identifying possible Finnish tax-deduction candidates using local Ollama models and semantic search with pgvector.
-
-## Key Features
-
-- **Local-first RAG pipeline**: Import emails → extract text → chunk → embed → semantic search
-- **Invoice extraction**: Structured field extraction (vendor, date, amount, VAT, line items) via LLM
-- **Finnish tax deduction classification**: Identify possible deduction candidates with confidence scores and evidence
-- **Audit-friendly**: Every step stores intermediate results (raw content, LLM responses, embeddings)
-- **Conservative by default**: All candidates are marked as "possible" and require human review before tax filing
-- **REST API**: List documents, chunks, extractions, candidates, and search indexed documents
-- **Docker Compose setup**: PostgreSQL with pgvector, ready to run locally
 
 ## Architecture
 
@@ -48,15 +40,6 @@ A production-minded MVP Kotlin backend for scanning invoice/receipt emails and i
     ↓
 11. Store candidates with evidence and confidence scores
 ```
-
-### Key Architecture Decisions
-
-- **Explicit SQL over JPA**: Full SQL queries with JDBC for clarity and control
-- **Pure functions for pipeline steps**: Chunking, embedding, extraction logic is testable and side-effect-free
-- **Synchronous MVP**: No job queue yet; all processing happens inline
-- **Error handling**: Failures logged and skipped gracefully; chunks without embeddings still searchable via keywords
-- **Conservation in ML**: LLM always adds confidence scores (0.0–1.0) reflecting uncertainty, not legal certainty
-- **Audit trail**: Raw LLM responses and evidence snippets stored for traceability
 
 ## Tech Stack
 
@@ -359,13 +342,4 @@ Defaults: 1500-character windows with 200-character overlap. Adjust in `src/main
 ### Embedding Dimensions
 
 Currently 1024 (mxbai-embed-large). If changing models, create new migration to alter column size and rebuild indexes.
-
-## License
-
-Not specified. Consult with project maintainers.
-
-## Authors
-
-- Verotin team
-
 
